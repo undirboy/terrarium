@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Self-Sustaining Digital Terrarium</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #0b0f19;
+            color: #fff;
+        }
+        #terrarium-canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 14px;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            pointer-events: auto;
+        }
+        h1 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            color: #38bdf8;
+        }
+        .stats {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #94a3b8;
+        }
+        .stats span {
+            color: #f8fafc;
+            font-weight: 600;
+        }
+        .status-badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 4px 10px;
+            font-size: 0.75rem;
+            border-radius: 20px;
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .controls {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        button {
+            background: #38bdf8;
+            color: #0b0f19;
+            border: none;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #7dd3fc;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui-overlay">
+        <h1>Digital Terrarium</h1>
+        <div class="stats" id="stats-text">
+            Acquiring GPS & Ecosystem Sync...<br>
+        </div>
+        <div class="status-badge" id="eco-status">Initializing Loop</div>
+        <div class="controls">
+            <button onclick="terrarium.triggerMutation()">Force Mutation</button>
+            <button onclick="terrarium.resetEco()">Reset Seed</button>
+        </div>
+    </div>
+
+    <canvas id="terrarium-canvas"></canvas>
+
+    <script>
+        class DigitalTerrarium {
+            constructor() {
+                this.canvas = document.getElementById('terrarium-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+
+                this.env = {
+                    temperature: 22,
+                    humidity: 50,
+                    isNight: false,
+                    wind: 0,
+                    weatherCode: 0,
+                    locationName: "Local Grid"
+                };
+
+                this.plants = [];
+                this.particles = [];
+                this.time = 0;
+
+                this.initGPSAndWeather();
+            }
+
+            resize() {
+                this.width = window.innerWidth;
+                this.height = window.innerHeight;
+                this.canvas.width = this.width * window.devicePixelRatio;
+                this.canvas.height = this.height * window.devicePixelRatio;
+                this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            }
+
+            async initGPSAndWeather() {
+                const statsEl = document.getElementById('stats-text');
+                const statusEl = document.getElementById('eco-status');
+
+                if (!navigator.geolocation) {
+                    this.fallbackWeather(statsEl, statusEl);
+                    return;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        const { latitude, longitude } = position.coords;
+                        try {
+                            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,is_day,wind_speed_10m,weather_code`);
+                            const data = await res.json();
+                            
+                            this.env.temperature = data.current.temperature_2m;
+                            this.env.humidity = data.current.relative_humidity_2m;
+                            this.env.isNight = data.current.is_day === 0;
+                            this.env.wind = data.current.wind_speed_10m / 10;
+                            this.env.weatherCode = data.current.weather_code;
+                            this.env.locationName = `${latitude.toFixed(2)}°, ${longitude.toFixed(2)}°`;
+
+                            statsEl.innerHTML = `
+                                Loc: <span>${this.env.locationName}</span><br>
+                                Temp: <span>${this.env.temperature}°C</span> | Hum: <span>${this.env.humidity}%</span><br>
+                                Wind: <span>${this.env.wind.toFixed(1)}m/s</span>
+                            `;
+                            statusEl.innerText = this.env.isNight ? "Night Cycle • Spore Phase" : "Day Cycle • Photosynthesis Active";
+                            
+                            this.buildEcosystem();
+                        } catch (e) {
+                            this.fallbackWeather(statsEl, statusEl);
+                        }
+                    },
+                    () => {
+                        this.fallbackWeather(statsEl, statusEl);
+                    }
+                );
+            }
+
+            fallbackWeather(statsEl, statusEl) {
+                this.env.temperature = 24;
+                this.env.humidity = 65;
+                this.env.isNight = false;
+                this.env.wind = 0.5;
+                statsEl.innerHTML = `Loc: <span>Default Simulation Grid</span><br>Temp: <span>24°C</span> | Hum: <span>65%</span>`;
+                statusEl.innerText = "Synthetic Mode Active";
+                this.buildEcosystem();
+            }
+
+            buildEcosystem() {
+                this.plants = [];
+                const plantCount = Math.floor(this.width / 120);
+                for (let i = 0; i < plantCount; i++) {
+                    const x = (this.width / (plantCount + 1)) * (i + 1) + (Math.random() * 40 - 20);
+                    this.plants.push(new ProceduralPlant(x, this.height * 0.8, this.env));
+                }
+            }
+
+            triggerMutation() {
+                this.plants.forEach(plant => plant.mutate(this.env));
+                document.getElementById('eco-status').innerText = "AI Induced Rapid Mutation Triggered";
+                setTimeout(() => {
+                    document.getElementById('eco-status').innerText = this.env.isNight ? "Night Cycle • Spore Phase" : "Day Cycle • Photosynthesis Active";
+                }, 2500);
+            }
+
+            resetEco() {
+                this.buildEcosystem();
+            }
+
+            update() {
+                this.time += 0.016;
+                this.plants.forEach(p => p.update(this.env, this.time));
+
+                if (Math.random() < 0.4) {
+                    const randomPlant = this.plants[Math.floor(Math.random() * this.plants.length)];
+                    if (randomPlant) {
+                        this.particles.push(new AmbientParticle(randomPlant.tipX, randomPlant.tipY, this.env));
+                    }
+                }
+
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    let p = this.particles[i];
+                    p.update(this.env);
+                    if (p.alpha <= 0) {
+                        this.particles.splice(i, 1);
+                    }
+                }
+            }
+
+            draw() {
+                const grad = this.ctx.createLinearGradient(0, 0, 0, this.height);
+                if (this.env.isNight) {
+                    grad.addColorStop(0, '#020617');
+                    grad.addColorStop(1, '#0f172a');
+                } else {
+                    grad.addColorStop(0, '#0284c7');
+                    grad.addColorStop(0.6, '#38bdf8');
+                    grad.addColorStop(1, '#bae6fd');
+                }
+                this.ctx.fillStyle = grad;
+                this.ctx.fillRect(0, 0, this.width, this.height);
+
+                this.ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+                this.ctx.fillRect(0, this.height * 0.8, this.width, this.height * 0.2);
+
+                this.plants.forEach(p => p.draw(this.ctx));
+                this.particles.forEach(p => p.draw(this.ctx));
+            }
+
+            loop() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.loop());
+            }
+        }
+
+        class ProceduralPlant {
+            constructor(x, y, env) {
+                this.x = x;
+                this.y = y;
+                this.env = env;
+                this.mutate(env);
+            }
+
+            mutate(env) {
+                this.segments = Math.floor(3 + Math.random() * 5);
+                this.baseLength = 20 + (env.humidity * 0.5) + Math.random() * 20;
+                this.angleVar = (Math.random() - 0.5) * 0.5;
+                this.hue = Math.floor(90 + (env.temperature * 2) + (Math.random() * 40 - 20));
+                this.thickness = 2 + Math.random() * 3;
+                this.nodeSwayOffset = Math.random() * 100;
+                this.tipX = this.x;
+                this.tipY = this.y - (this.segments * this.baseLength);
+            }
+
+            update(env, time) {
+                this.sway = Math.sin(time * 2 + this.nodeSwayOffset) * (env.wind + 0.5);
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.strokeStyle = `hsl(${this.hue}, 60%, ${this.env.isNight ? 25 : 45}%)`;
+                ctx.lineWidth = this.thickness;
+                ctx.lineCap = 'round';
+
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+
+                let currX = this.x;
+                let currY = this.y;
+
+                for (let i = 0; i < this.segments; i++) {
+                    const segmentFactor = (i + 1) / this.segments;
+                    currX += Math.sin(this.angleVar * i + this.sway) * (this.baseLength * 0.5);
+                    currY -= this.baseLength * (1 - segmentFactor * 0.2);
+                    
+                    if (i === this.segments - 1) {
+                        this.tipX = currX;
+                        this.tipY = currY;
+                    }
+
+                    ctx.lineTo(currX, currY);
+                }
+
+                ctx.stroke();
+
+                ctx.fillStyle = `hsl(${this.hue + 30}, 80%, 60%)`;
+                ctx.beginPath();
+                ctx.arc(this.tipX, this.tipY, this.thickness * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        class AmbientParticle {
+            constructor(x, y, env) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 0.8 + (env.wind * 0.5);
+                this.vy = -Math.random() * 1.2 - 0.2;
+                this.alpha = 0.8;
+                this.size = Math.random() * 3 + 1;
+                this.color = env.isNight ? '#38bdf8' : '#a7f3d0';
+            }
+
+            update(env) {
+                this.x += this.vx + (env.wind * 0.2);
+                this.y += this.vy;
+                this.alpha -= 0.008;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        const terrarium = new DigitalTerrarium();
+        terrarium.loop();
+    </script>
+</body>
+</html>
