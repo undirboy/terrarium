@@ -129,15 +129,15 @@
 
         <div class="section-label">Tools & Modifiers</div>
         <div class="controls-grid">
+            <button class="tool-btn" onclick="terrarium.setTool('water')" id="tool-water" style="grid-column: span 2; background-color: #227093; color: #fff; border-color: #34ace0;">💧 Torrential Water</button>
             <button class="tool-btn active-tool" onclick="terrarium.setTool('knife')" id="tool-knife" style="grid-column: span 2; background-color: #e056fd; color: #fff; border-color: #be2edd;">🔪 Precision Knife</button>
             <button class="tool-btn" onclick="terrarium.setTool('heat')" id="tool-heat" style="color: #ff7675; border-color: #d63031;">🔥 Heat Ray</button>
             <button class="tool-btn" onclick="terrarium.setTool('chill')" id="tool-chill" style="color: #74b9ff; border-color: #0984e3;">❄️ Freeze Ray</button>
-            <button class="tool-btn" onclick="terrarium.setTool('water')" id="tool-water">💧 Water</button>
             <button class="tool-btn" onclick="terrarium.setTool('sand')" id="tool-sand">⏳ Dry Sand</button>
             <button class="tool-btn" onclick="terrarium.setTool('wetsand')" id="tool-wetsand">🧱 Wet Sand</button>
             <button class="tool-btn" onclick="terrarium.setTool('stone')" id="tool-stone">🪨 Stone</button>
             <button class="tool-btn" onclick="terrarium.setTool('algae')" id="tool-algae">🌿 Algae</button>
-            <button class="tool-btn" onclick="terrarium.setTool('erase')" id="tool-erase">🧹 Vacuum</button>
+            <button class="tool-btn" onclick="terrarium.setTool('erase')" id="tool-erase" style="grid-column: span 2;">🧹 Vacuum / Clear</button>
         </div>
 
         <div class="section-label">Fauna & Organisms</div>
@@ -264,22 +264,30 @@
 
             initDefaultWorld() {
                 this.grid.fill(EMPTY);
-                
+
+                for (let y = 0; y < this.gh; y++) {
+                    this.setCell(0, y, STONE);
+                    this.setCell(this.gw - 1, y, STONE);
+                }
                 for (let x = 0; x < this.gw; x++) {
-                    for (let y = this.gh - 20; y < this.gh; y++) {
+                    this.setCell(x, this.gh - 1, STONE);
+                }
+                
+                for (let x = 1; x < this.gw - 1; x++) {
+                    for (let y = this.gh - 20; y < this.gh - 1; y++) {
                         this.setCell(x, y, WET_SAND);
                     }
                 }
                 
-                for (let x = Math.floor(this.gw * 0.35); x < Math.floor(this.gw * 0.65); x++) {
-                    const h = Math.floor(Math.sin((x - this.gw * 0.35) / (this.gw * 0.3) * Math.PI) * 20);
+                for (let x = Math.floor(this.gw * 0.4); x < Math.floor(this.gw * 0.7); x++) {
+                    const h = Math.floor(Math.sin((x - this.gw * 0.4) / (this.gw * 0.3) * Math.PI) * 25);
                     for (let y = this.gh - 20 - h; y < this.gh - 20; y++) {
                         this.setCell(x, y, WET_SAND);
                     }
                 }
 
-                for (let x = 0; x < Math.floor(this.gw * 0.35); x++) {
-                    for (let y = this.gh - 35; y < this.gh - 20; y++) {
+                for (let x = 1; x < Math.floor(this.gw * 0.4); x++) {
+                    for (let y = this.gh - 45; y < this.gh - 20; y++) {
                         this.setCell(x, y, WATER);
                     }
                 }
@@ -288,10 +296,10 @@
                     this.setCell(x, this.gh - 21, ALGAE);
                 }
 
-                this.fish = [new Fish(this.gw * 0.18, this.gh - 28)];
-                this.daphnia = [new Daphnia(this.gw * 0.15, this.gh - 26)];
-                this.snails = [new Snail(this.gw * 0.2, this.gh - 20)];
-                this.bugs = [new Bug(this.gw * 0.5, this.gh - 42)];
+                this.fish = [new Fish(this.gw * 0.18, this.gh - 30)];
+                this.daphnia = [new Daphnia(this.gw * 0.15, this.gh - 28)];
+                this.snails = [new Snail(this.gw * 0.2, this.gh - 21)];
+                this.bugs = [new Bug(this.gw * 0.55, this.gh - 46)];
             }
 
             resetEco() {
@@ -336,7 +344,7 @@
                         if (e2 <= dx) { err += dx; curY += sy; }
                     }
                 } else if (this.activeTool === 'heat' || this.activeTool === 'chill') {
-                    const r = 4;
+                    const r = 5;
                     for (let dy = -r; dy <= r; dy++) {
                         for (let dx = -r; dx <= r; dx++) {
                             const nx = this.pointerX + dx, ny = this.pointerY + dy;
@@ -352,17 +360,26 @@
                         }
                     }
                 } else {
-                    const r = this.activeTool === 'water' ? 3 : 2;
+                    const r = this.activeTool === 'water' ? 6 : (this.activeTool === 'sand' ? 4 : 3);
                     for (let dy = -r; dy <= r; dy++) {
                         for (let dx = -r; dx <= r; dx++) {
                             const nx = this.pointerX + dx;
                             const ny = this.pointerY + dy;
-                            if (this.activeTool === 'sand') this.setCell(nx, ny, SAND);
-                            else if (this.activeTool === 'water') this.setCell(nx, ny, WATER);
-                            else if (this.activeTool === 'wetsand') this.setCell(nx, ny, WET_SAND);
-                            else if (this.activeTool === 'stone') this.setCell(nx, ny, STONE);
-                            else if (this.activeTool === 'algae') this.setCell(nx, ny, ALGAE);
-                            else if (this.activeTool === 'erase') this.setCell(nx, ny, EMPTY);
+                            if (nx <= 0 || nx >= this.gw - 1 || ny <= 0 || ny >= this.gh - 1) continue;
+
+                            if (this.activeTool === 'sand') {
+                                if (this.getCell(nx, ny) === EMPTY || this.getCell(nx, ny) === WATER) this.setCell(nx, ny, SAND);
+                            } else if (this.activeTool === 'water') {
+                                if (this.getCell(nx, ny) === EMPTY) this.setCell(nx, ny, WATER);
+                            } else if (this.activeTool === 'wetsand') {
+                                this.setCell(nx, ny, WET_SAND);
+                            } else if (this.activeTool === 'stone') {
+                                this.setCell(nx, ny, STONE);
+                            } else if (this.activeTool === 'algae') {
+                                this.setCell(nx, ny, ALGAE);
+                            } else if (this.activeTool === 'erase') {
+                                this.setCell(nx, ny, EMPTY);
+                            }
                         }
                     }
                 }
@@ -373,8 +390,8 @@
                 let waterCount = 0;
                 let vaporCount = 0;
 
-                for (let y = this.gh - 1; y >= 0; y--) {
-                    for (let x = 0; x < this.gw; x++) {
+                for (let y = this.gh - 2; y >= 1; y--) {
+                    for (let x = 1; x < this.gw - 1; x++) {
                         const idx = y * this.gw + x;
                         const cell = this.grid[idx];
 
@@ -403,10 +420,11 @@
                                 this.gridNext[(y - 1) * this.gw + x] = STEAM;
                             } else {
                                 const dir = Math.random() < 0.5 ? 1 : -1;
-                                if (this.getCell(x + dir, y - 1) === EMPTY) {
+                                const canMoveX = (dir === 1 && x < this.gw - 2) || (dir === -1 && x > 1);
+                                if (canMoveX && this.getCell(x + dir, y - 1) === EMPTY) {
                                     this.gridNext[idx] = EMPTY;
                                     this.gridNext[(y - 1) * this.gw + (x + dir)] = STEAM;
-                                } else if (this.getCell(x + dir, y) === EMPTY) {
+                                } else if (canMoveX && this.getCell(x + dir, y) === EMPTY) {
                                     this.gridNext[idx] = EMPTY;
                                     this.gridNext[y * this.gw + (x + dir)] = STEAM;
                                 }
@@ -428,38 +446,38 @@
                             const bl = this.getCell(x - 1, y + 1);
                             const br = this.getCell(x + 1, y + 1);
 
-                            if (below === WATER || this.getCell(x - 1, y) === WATER || this.getCell(x + 1, y) === WATER) {
-                                this.gridNext[idx] = WET_SAND;
-                                continue;
-                            }
-
-                            if (below === EMPTY || below === WATER) {
-                                this.gridNext[idx] = below;
+                            if (below === WATER) {
+                                this.gridNext[idx] = WATER;
+                                this.gridNext[(y + 1) * this.gw + x] = WET_SAND;
+                            } else if (below === EMPTY) {
+                                this.gridNext[idx] = EMPTY;
                                 this.gridNext[(y + 1) * this.gw + x] = SAND;
-                            } else if (bl === EMPTY || bl === WATER) {
+                            } else if (x > 1 && (bl === EMPTY || bl === WATER)) {
                                 this.gridNext[idx] = bl;
                                 this.gridNext[(y + 1) * this.gw + (x - 1)] = SAND;
-                            } else if (br === EMPTY || br === WATER) {
+                            } else if (x < this.gw - 2 && (br === EMPTY || br === WATER)) {
                                 this.gridNext[idx] = br;
                                 this.gridNext[(y + 1) * this.gw + (x + 1)] = SAND;
                             }
                         }
                         else if (cell === WET_SAND) {
                             const below = this.getCell(x, y + 1);
-                            if (below === EMPTY || below === WATER) {
-                                this.gridNext[idx] = below;
+                            if (below === EMPTY) {
+                                this.gridNext[idx] = EMPTY;
                                 this.gridNext[(y + 1) * this.gw + x] = WET_SAND;
-                            } 
-                            else if (below !== EMPTY && below !== WATER) {
+                            } else if (below === WATER) {
+                                this.gridNext[idx] = WATER;
+                                this.gridNext[(y + 1) * this.gw + x] = WET_SAND;
+                            } else if (below !== EMPTY && below !== WATER) {
                                 const left = this.getCell(x - 1, y);
                                 const right = this.getCell(x + 1, y);
                                 const bl = this.getCell(x - 1, y + 1);
                                 const br = this.getCell(x + 1, y + 1);
                                 
-                                if (left === EMPTY && bl === EMPTY && Math.random() < 0.05 * dt) {
+                                if (x > 1 && left === EMPTY && bl === EMPTY && Math.random() < 0.05 * dt) {
                                     this.gridNext[idx] = EMPTY;
                                     this.gridNext[(y + 1) * this.gw + (x - 1)] = WET_SAND;
-                                } else if (right === EMPTY && br === EMPTY && Math.random() < 0.05 * dt) {
+                                } else if (x < this.gw - 2 && right === EMPTY && br === EMPTY && Math.random() < 0.05 * dt) {
                                     this.gridNext[idx] = EMPTY;
                                     this.gridNext[(y + 1) * this.gw + (x + 1)] = WET_SAND;
                                 }
@@ -467,8 +485,8 @@
                         }
                         else if (cell === SILT) {
                             const below = this.getCell(x, y + 1);
-                            if (below === EMPTY || below === WATER) {
-                                this.gridNext[idx] = below;
+                            if (below === EMPTY) {
+                                this.gridNext[idx] = EMPTY;
                                 this.gridNext[(y + 1) * this.gw + x] = SILT;
                             }
                         }
@@ -479,10 +497,13 @@
                                 this.gridNext[(y + 1) * this.gw + x] = WATER;
                             } else {
                                 const dir = Math.random() < 0.5 ? 1 : -1;
-                                const d1 = this.getCell(x + dir, y + 1);
-                                const d2 = this.getCell(x - dir, y + 1);
-                                const s1 = this.getCell(x + dir, y);
-                                const s2 = this.getCell(x - dir, y);
+                                const canMoveDir = (dir === 1 && x < this.gw - 2) || (dir === -1 && x > 1);
+                                const canMoveOpp = (dir === 1 && x > 1) || (dir === -1 && x < this.gw - 2);
+
+                                const d1 = canMoveDir ? this.getCell(x + dir, y + 1) : STONE;
+                                const d2 = canMoveOpp ? this.getCell(x - dir, y + 1) : STONE;
+                                const s1 = canMoveDir ? this.getCell(x + dir, y) : STONE;
+                                const s2 = canMoveOpp ? this.getCell(x - dir, y) : STONE;
 
                                 if (d1 === EMPTY) {
                                     this.gridNext[idx] = EMPTY;
@@ -504,11 +525,13 @@
                             if (isSunlit && this.co2 > 5 && Math.random() < 0.0006 * dt) {
                                 const nx = x + (Math.random() < 0.5 ? 1 : -1);
                                 const ny = y + (Math.random() < 0.5 ? 1 : -1);
-                                if (this.getCell(nx, ny) === WATER) {
-                                    this.gridNext[ny * this.gw + nx] = ALGAE;
-                                    this.co2 -= 0.5;
-                                    this.oxygen += 0.5;
-                                    if (Math.random() < 0.2) this.gases.push(new GasBubble(x, y, 'O2'));
+                                if (nx > 0 && nx < this.gw - 1 && ny > 0 && ny < this.gh - 1) {
+                                    if (this.getCell(nx, ny) === WATER) {
+                                        this.gridNext[ny * this.gw + nx] = ALGAE;
+                                        this.co2 -= 0.5;
+                                        this.oxygen += 0.5;
+                                        if (Math.random() < 0.2) this.gases.push(new GasBubble(x, y, 'O2'));
+                                    }
                                 }
                             } else if (this.oxygen < 20 && Math.random() < 0.0005 * dt) {
                                 this.gridNext[idx] = SILT;
@@ -565,7 +588,7 @@
                     } else if (cell === WET_SAND) {
                         data[idx] = 155; data[idx+1] = 125; data[idx+2] = 85; data[idx+3] = 255;
                     } else if (cell === WATER) {
-                        data[idx] = 45; data[idx+1] = 125; data[idx+2] = 215; data[idx+3] = isNight ? 130 : 170;
+                        data[idx] = 45; data[idx+1] = 125; data[idx+2] = 215; data[idx+3] = isNight ? 140 : 180;
                     } else if (cell === ICE) {
                         data[idx] = 200; data[idx+1] = 230; data[idx+2] = 255; data[idx+3] = 230;
                     } else if (cell === STEAM) {
@@ -740,29 +763,34 @@
             }
         }
 
-        // Secret Keystroke Trigger for "swara" -> "shembdi"
+        // Keystroke Triggers: "swara" -> "shembdi", "anuj" -> "raavi"
         (() => {
             let keyBuffer = '';
-            const targetWord = 'swara';
+            const triggers = {
+                'swara': 'shembdi',
+                'anuj': 'raavi'
+            };
+            const maxLen = 5;
             const flashElem = document.getElementById('secret-flash');
 
             window.addEventListener('keydown', (e) => {
                 if (e.key.length !== 1) return;
 
-                keyBuffer += e.key.toLowerCase();
-                if (keyBuffer.length > targetWord.length) {
-                    keyBuffer = keyBuffer.slice(-targetWord.length);
-                }
+                keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-maxLen);
 
-                if (keyBuffer === targetWord) {
-                    keyBuffer = '';
-                    flashElem.classList.remove('active');
-                    void flashElem.offsetWidth;
-                    flashElem.classList.add('active');
-
-                    setTimeout(() => {
+                for (const [word, output] of Object.entries(triggers)) {
+                    if (keyBuffer.endsWith(word)) {
+                        keyBuffer = '';
+                        flashElem.innerText = output;
                         flashElem.classList.remove('active');
-                    }, 1250);
+                        void flashElem.offsetWidth;
+                        flashElem.classList.add('active');
+
+                        setTimeout(() => {
+                            flashElem.classList.remove('active');
+                        }, 1250);
+                        break;
+                    }
                 }
             });
         })();
