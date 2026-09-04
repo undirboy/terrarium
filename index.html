@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terrarium Simulator - Wet Sand, Knife & Secret Trigger</title>
+    <title>Terrarium Simulator - Complete Sandbox</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html {
@@ -105,17 +105,21 @@
     <div id="secret-flash" class="flash-banner">shembdi</div>
 
     <div class="ui-panel" id="ui-panel">
-        <h1>Orb & Sand Sculptor</h1>
-        <div class="subtitle">Wet sand clumping, water level & knife carving.</div>
+        <h1>Terrarium Engine</h1>
+        <div class="subtitle">Physics, cellular dynamics, hydro & gases.</div>
         
         <div class="data-section">
             <div class="data-row">
-                <span class="data-label">Water Level Vol</span>
-                <span class="data-value" id="val-water-vol">0 cells</span>
+                <span class="data-label">Global Temp</span>
+                <span class="data-value" id="val-temp">22°C</span>
             </div>
             <div class="data-row">
-                <span class="data-label">Oxygen (O2)</span>
-                <span class="data-value" id="val-o2">100 ppm</span>
+                <span class="data-label">Water / Steam</span>
+                <span class="data-value" id="val-water-vol">0 / 0</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Oxygen ($O_2$)</span>
+                <span class="data-value" id="val-o2">110 ppm</span>
             </div>
             <div class="data-row">
                 <span class="data-label">Cycle</span>
@@ -123,10 +127,12 @@
             </div>
         </div>
 
-        <div class="section-label">Sculpting & Powder Tools</div>
+        <div class="section-label">Tools & Modifiers</div>
         <div class="controls-grid">
             <button class="tool-btn active-tool" onclick="terrarium.setTool('knife')" id="tool-knife" style="grid-column: span 2; background-color: #e056fd; color: #fff; border-color: #be2edd;">🔪 Precision Knife</button>
-            <button class="tool-btn" onclick="terrarium.setTool('water')" id="tool-water">💧 Pour Water</button>
+            <button class="tool-btn" onclick="terrarium.setTool('heat')" id="tool-heat" style="color: #ff7675; border-color: #d63031;">🔥 Heat Ray</button>
+            <button class="tool-btn" onclick="terrarium.setTool('chill')" id="tool-chill" style="color: #74b9ff; border-color: #0984e3;">❄️ Freeze Ray</button>
+            <button class="tool-btn" onclick="terrarium.setTool('water')" id="tool-water">💧 Water</button>
             <button class="tool-btn" onclick="terrarium.setTool('sand')" id="tool-sand">⏳ Dry Sand</button>
             <button class="tool-btn" onclick="terrarium.setTool('wetsand')" id="tool-wetsand">🧱 Wet Sand</button>
             <button class="tool-btn" onclick="terrarium.setTool('stone')" id="tool-stone">🪨 Stone</button>
@@ -144,6 +150,8 @@
 
         <div class="section-label">Environment</div>
         <div class="controls-grid">
+            <button onclick="terrarium.adjustTemp(-5)">🥶 Global -5°C</button>
+            <button onclick="terrarium.adjustTemp(5)">🥵 Global +5°C</button>
             <button onclick="terrarium.toggleNight()" id="btn-night">🌙 Toggle Night</button>
             <button class="speed-btn" onclick="terrarium.toggleSpeed()" id="btn-speed">⏩ Speed: 1x</button>
             <button onclick="terrarium.resetEco()" style="grid-column: span 2;">🔄 Reset World</button>
@@ -153,7 +161,7 @@
     <canvas id="terrarium-canvas"></canvas>
 
     <script>
-        const EMPTY = 0, SAND = 1, WATER = 2, STONE = 3, ALGAE = 4, WET_SAND = 5;
+        const EMPTY = 0, SAND = 1, WATER = 2, STONE = 3, ALGAE = 4, WET_SAND = 5, ICE = 6, STEAM = 7, SILT = 8;
 
         class DigitalTerrarium {
             constructor() {
@@ -165,7 +173,7 @@
                 window.addEventListener('resize', () => this.resize());
                 window.addEventListener('orientationchange', () => setTimeout(() => this.resize(), 100));
 
-                this.env = { isNight: false };
+                this.env = { isNight: false, temperature: 22 };
                 this.forceNight = false;
 
                 this.oxygen = 110;
@@ -236,6 +244,11 @@
                 document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active-tool'));
                 const el = document.getElementById(`tool-${t}`);
                 if (el) el.classList.add('active-tool');
+            }
+
+            adjustTemp(delta) {
+                this.env.temperature += delta;
+                document.getElementById('val-temp').innerText = `${this.env.temperature}°C`;
             }
 
             toggleSpeed() {
@@ -312,7 +325,7 @@
                         for (let ox = -1; ox <= 1; ox++) {
                             for (let oy = -1; oy <= 1; oy++) {
                                 const target = this.getCell(curX + ox, curY + oy);
-                                if (target === SAND || target === WET_SAND || target === STONE || target === ALGAE) {
+                                if (target === SAND || target === WET_SAND || target === STONE || target === ALGAE || target === ICE || target === SILT) {
                                     this.setCell(curX + ox, curY + oy, EMPTY);
                                 }
                             }
@@ -321,6 +334,22 @@
                         const e2 = 2 * err;
                         if (e2 >= dy) { err += dy; curX += sx; }
                         if (e2 <= dx) { err += dx; curY += sy; }
+                    }
+                } else if (this.activeTool === 'heat' || this.activeTool === 'chill') {
+                    const r = 4;
+                    for (let dy = -r; dy <= r; dy++) {
+                        for (let dx = -r; dx <= r; dx++) {
+                            const nx = this.pointerX + dx, ny = this.pointerY + dy;
+                            const target = this.getCell(nx, ny);
+                            if (this.activeTool === 'heat') {
+                                if (target === WATER) this.setCell(nx, ny, STEAM);
+                                else if (target === ICE) this.setCell(nx, ny, WATER);
+                                else if (target === WET_SAND) this.setCell(nx, ny, SAND);
+                            } else {
+                                if (target === WATER) this.setCell(nx, ny, ICE);
+                                else if (target === STEAM) this.setCell(nx, ny, WATER);
+                            }
+                        }
                     }
                 } else {
                     const r = this.activeTool === 'water' ? 3 : 2;
@@ -342,6 +371,7 @@
             updateGrid(dt) {
                 this.gridNext.set(this.grid);
                 let waterCount = 0;
+                let vaporCount = 0;
 
                 for (let y = this.gh - 1; y >= 0; y--) {
                     for (let x = 0; x < this.gw; x++) {
@@ -349,6 +379,49 @@
                         const cell = this.grid[idx];
 
                         if (cell === WATER) waterCount++;
+                        if (cell === STEAM) vaporCount++;
+
+                        if (this.env.temperature <= 0 && cell === WATER && Math.random() < 0.02 * dt) {
+                            this.gridNext[idx] = ICE;
+                            continue;
+                        }
+                        if (this.env.temperature >= 40 && cell === ICE && Math.random() < 0.04 * dt) {
+                            this.gridNext[idx] = WATER;
+                            continue;
+                        }
+                        if (this.env.temperature >= 100 && cell === WATER && Math.random() < 0.05 * dt) {
+                            this.gridNext[idx] = STEAM;
+                            continue;
+                        }
+
+                        if (cell === STEAM) {
+                            const above = this.getCell(x, y - 1);
+                            if (y <= 2 && Math.random() < 0.05 * dt) {
+                                this.gridNext[idx] = WATER;
+                            } else if (above === EMPTY) {
+                                this.gridNext[idx] = EMPTY;
+                                this.gridNext[(y - 1) * this.gw + x] = STEAM;
+                            } else {
+                                const dir = Math.random() < 0.5 ? 1 : -1;
+                                if (this.getCell(x + dir, y - 1) === EMPTY) {
+                                    this.gridNext[idx] = EMPTY;
+                                    this.gridNext[(y - 1) * this.gw + (x + dir)] = STEAM;
+                                } else if (this.getCell(x + dir, y) === EMPTY) {
+                                    this.gridNext[idx] = EMPTY;
+                                    this.gridNext[y * this.gw + (x + dir)] = STEAM;
+                                }
+                            }
+                            continue;
+                        }
+
+                        if (cell === ICE) {
+                            const below = this.getCell(x, y + 1);
+                            if (below === EMPTY) {
+                                this.gridNext[idx] = EMPTY;
+                                this.gridNext[(y + 1) * this.gw + x] = ICE;
+                            }
+                            continue;
+                        }
 
                         if (cell === SAND) {
                             const below = this.getCell(x, y + 1);
@@ -392,6 +465,13 @@
                                 }
                             }
                         }
+                        else if (cell === SILT) {
+                            const below = this.getCell(x, y + 1);
+                            if (below === EMPTY || below === WATER) {
+                                this.gridNext[idx] = below;
+                                this.gridNext[(y + 1) * this.gw + x] = SILT;
+                            }
+                        }
                         else if (cell === WATER) {
                             const below = this.getCell(x, y + 1);
                             if (below === EMPTY) {
@@ -430,12 +510,14 @@
                                     this.oxygen += 0.5;
                                     if (Math.random() < 0.2) this.gases.push(new GasBubble(x, y, 'O2'));
                                 }
+                            } else if (this.oxygen < 20 && Math.random() < 0.0005 * dt) {
+                                this.gridNext[idx] = SILT;
                             }
                         }
                     }
                 }
                 this.grid.set(this.gridNext);
-                document.getElementById('val-water-vol').innerText = `${waterCount} cells`;
+                document.getElementById('val-water-vol').innerText = `${waterCount} / ${vaporCount}`;
             }
 
             spawnDaphnia() { this.daphnia.push(new Daphnia(this.gw / 2, this.gh / 2)); }
@@ -484,10 +566,16 @@
                         data[idx] = 155; data[idx+1] = 125; data[idx+2] = 85; data[idx+3] = 255;
                     } else if (cell === WATER) {
                         data[idx] = 45; data[idx+1] = 125; data[idx+2] = 215; data[idx+3] = isNight ? 130 : 170;
+                    } else if (cell === ICE) {
+                        data[idx] = 200; data[idx+1] = 230; data[idx+2] = 255; data[idx+3] = 230;
+                    } else if (cell === STEAM) {
+                        data[idx] = 230; data[idx+1] = 240; data[idx+2] = 250; data[idx+3] = 90;
                     } else if (cell === STONE) {
                         data[idx] = 70; data[idx+1] = 78; data[idx+2] = 90; data[idx+3] = 255;
                     } else if (cell === ALGAE) {
                         data[idx] = 65; data[idx+1] = 165; data[idx+2] = 75; data[idx+3] = 255;
+                    } else if (cell === SILT) {
+                        data[idx] = 48; data[idx+1] = 40; data[idx+2] = 32; data[idx+3] = 255;
                     }
                 }
 
@@ -615,7 +703,7 @@
                 const gy = Math.floor(this.y);
                 const below = sim.getCell(gx, gy + 1);
 
-                if (below === SAND || below === WET_SAND || below === STONE) {
+                if (below === SAND || below === WET_SAND || below === STONE || below === ICE || below === SILT) {
                     this.x += this.vx * dt;
                     if (sim.getCell(gx, gy) === ALGAE) {
                         sim.setCell(gx, gy, EMPTY);
@@ -640,7 +728,7 @@
                 const gx = Math.floor(this.x + this.vx);
                 const gy = Math.floor(this.y);
                 const below = sim.getCell(gx, gy + 1);
-                if (below === SAND || below === WET_SAND || below === STONE) {
+                if (below === SAND || below === WET_SAND || below === STONE || below === ICE || below === SILT) {
                     this.x += this.vx * dt;
                 } else {
                     this.vx *= -1;
