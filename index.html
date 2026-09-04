@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Self-Sustaining Digital Terrarium & Ecosystem</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Terrarium Simulator</title>
     <style>
         * {
             box-sizing: border-box;
@@ -14,126 +14,191 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #040712;
-            color: #f8fafc;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #E0E0E0;
+            overscroll-behavior-y: none; /* Prevents mobile pull-to-refresh */
         }
+
         #terrarium-canvas {
             display: block;
             width: 100vw;
             height: 100vh;
+            touch-action: none; /* Prevents mobile swipe scrolling */
         }
-        .ui-overlay {
+
+        .ui-panel {
             position: absolute;
             top: 24px;
             left: 24px;
-            background: rgba(11, 18, 32, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(56, 189, 248, 0.2);
-            padding: 20px;
-            border-radius: 16px;
-            width: 320px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            width: calc(100% - 48px);
+            max-width: 340px;
+            background-color: #1E1E1E;
+            border: 1px solid #333333;
+            padding: 24px;
             pointer-events: auto;
+            border-radius: 6px;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
+
         h1 {
-            font-size: 1.1rem;
-            margin-bottom: 2px;
-            letter-spacing: 1px;
-            color: #38bdf8;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .subtitle {
-            font-size: 0.7rem;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }
-        .stats {
-            font-size: 0.8rem;
-            line-height: 1.5;
-            color: #94a3b8;
-            margin-bottom: 12px;
-        }
-        .stats span {
-            color: #f1f5f9;
+            font-size: 1.25rem;
             font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 6px;
+            line-height: 1.2;
         }
-        .status-badge {
-            display: inline-flex;
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: #A0A0A0;
+            margin-bottom: 20px;
+        }
+
+        .data-section {
+            background-color: #262626;
+            padding: 14px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            margin-bottom: 6px;
+        }
+        .data-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .data-label {
+            color: #888888;
+        }
+        
+        .data-value {
+            color: #FFFFFF;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.8rem;
+        }
+
+        .status-indicator {
+            display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            font-size: 0.7rem;
-            border-radius: 20px;
-            background: rgba(56, 189, 248, 0.1);
-            color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.25);
-            font-weight: 500;
-            margin-bottom: 14px;
-            width: 100%;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: #FFFFFF;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #333333;
         }
+
         .status-dot {
-            width: 6px;
-            height: 6px;
-            background: #38bdf8;
+            width: 8px;
+            height: 8px;
+            background-color: #FF6B00;
             border-radius: 50%;
-            box-shadow: 0 0 8px #38bdf8;
-            animation: pulse 2s infinite;
         }
+
         .controls-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 6px;
+            gap: 10px;
         }
+
         button {
-            background: rgba(56, 189, 248, 0.12);
-            color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.25);
-            padding: 6px 10px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            border-radius: 8px;
+            background-color: #2A2A2A;
+            color: #E0E0E0;
+            border: 1px solid #404040;
+            padding: 12px 10px;
+            font-size: 0.85rem;
+            font-family: inherit;
             cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: center;
+            border-radius: 4px;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+            user-select: none;
+            -webkit-user-select: none;
         }
-        button:hover {
-            background: #38bdf8;
-            color: #040712;
-            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+
+        button:active {
+            background-color: #404040;
         }
-        .btn-full {
+
+        @media (hover: hover) {
+            button:hover {
+                background-color: #333333;
+                border-color: #666666;
+                color: #FFFFFF;
+            }
+            button.primary-action:hover {
+                background-color: #FF8533;
+            }
+        }
+
+        button.primary-action {
             grid-column: span 2;
+            background-color: #FF6B00;
+            color: #000000;
+            font-weight: 600;
+            border: none;
+            margin-top: 6px;
         }
-        @keyframes pulse {
-            0% { opacity: 0.4; }
-            50% { opacity: 1; }
-            100% { opacity: 0.4; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 480px) {
+            .ui-panel { 
+                top: 16px; 
+                left: 16px; 
+                width: calc(100% - 32px); 
+                padding: 16px; 
+            }
+            h1 { font-size: 1.15rem; }
+            .subtitle { font-size: 0.8rem; margin-bottom: 16px; }
+            .data-section { margin-bottom: 16px; }
+            .status-indicator { margin-bottom: 16px; padding-bottom: 16px; }
+            button { font-size: 0.8rem; padding: 10px 6px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="ui-overlay">
-        <h1>Digital Biome</h1>
-        <div class="subtitle">Interactive Terrarium & Aquarium</div>
-        <div class="stats" id="stats-text">
-            Syncing GPS Telemetry...<br>
+    <div class="ui-panel">
+        <h1>Terrarium Simulator</h1>
+        <div class="subtitle">Procedural generation based on live local weather.</div>
+        
+        <div class="data-section">
+            <div class="data-row">
+                <span class="data-label">Coordinates</span>
+                <span class="data-value" id="val-loc">Fetching...</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Temperature</span>
+                <span class="data-value" id="val-temp">--°C</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Humidity</span>
+                <span class="data-value" id="val-hum">--%</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Wind</span>
+                <span class="data-value" id="val-wind">-- m/s</span>
+            </div>
         </div>
-        <div class="status-badge">
+
+        <div class="status-indicator">
             <div class="status-dot"></div>
-            <span id="status-label">Ecosystem Stable</span>
+            <span id="status-label">Awaiting GPS Permission</span>
         </div>
+
         <div class="controls-grid">
             <button onclick="terrarium.addSandLayer()">Add Sand</button>
-            <button onclick="terrarium.toggleWater()">Toggle Water</button>
-            <button onclick="terrarium.spawnEgg()">Spawn Egg</button>
-            <button onclick="terrarium.spawnOrganism()">Add Organism</button>
-            <button class="btn-full" onclick="terrarium.triggerMutation()">Force AI Mutation</button>
+            <button onclick="terrarium.toggleWater()">Add Water</button>
+            <button onclick="terrarium.spawnEgg()">Add Egg</button>
+            <button onclick="terrarium.spawnOrganism()">Add Bug</button>
+            <button class="primary-action" onclick="terrarium.triggerMutation()">Regenerate Flora</button>
         </div>
     </div>
 
@@ -147,13 +212,14 @@
                 
                 this.resize();
                 window.addEventListener('resize', () => this.resize());
+                window.addEventListener('orientationchange', () => setTimeout(() => this.resize(), 100));
 
                 this.env = {
-                    temperature: 22,
+                    temperature: 20,
                     humidity: 50,
                     isNight: false,
-                    wind: 0.2,
-                    locationName: "Local Grid"
+                    wind: 0.1,
+                    locationName: "Local"
                 };
 
                 this.plants = [];
@@ -177,11 +243,10 @@
             }
 
             async initGPSAndWeather() {
-                const statsEl = document.getElementById('stats-text');
                 const statusLabel = document.getElementById('status-label');
 
                 if (!navigator.geolocation) {
-                    this.fallbackWeather(statsEl, statusLabel);
+                    this.fallbackWeather(statusLabel);
                     return;
                 }
 
@@ -196,78 +261,84 @@
                             this.env.humidity = data.current.relative_humidity_2m;
                             this.env.isNight = data.current.is_day === 0;
                             this.env.wind = Math.max(0.1, data.current.wind_speed_10m / 10);
-                            this.env.locationName = `${latitude.toFixed(1)}°, ${longitude.toFixed(1)}°`;
-
-                            statsEl.innerHTML = `
-                                Grid: <span>${this.env.locationName}</span><br>
-                                Temp: <span>${this.env.temperature}°C</span> | Hum: <span>${this.env.humidity}%</span>
-                            `;
-                            statusLabel.innerText = this.env.isNight ? "Night Cycle • Spore Active" : "Day Cycle • Photosynthesis";
+                            
+                            const latStr = latitude > 0 ? `${latitude.toFixed(2)}N` : `${Math.abs(latitude).toFixed(2)}S`;
+                            const lonStr = longitude > 0 ? `${longitude.toFixed(2)}E` : `${Math.abs(longitude).toFixed(2)}W`;
+                            
+                            document.getElementById('val-loc').innerText = `${latStr}, ${lonStr}`;
+                            document.getElementById('val-temp').innerText = `${this.env.temperature}°C`;
+                            document.getElementById('val-hum').innerText = `${this.env.humidity}%`;
+                            document.getElementById('val-wind').innerText = `${this.env.wind.toFixed(1)} m/s`;
+                            
+                            statusLabel.innerText = this.env.isNight ? "Night cycle active" : "Day cycle active";
                             
                             this.buildEcosystem();
                         } catch (e) {
-                            this.fallbackWeather(statsEl, statusLabel);
+                            this.fallbackWeather(statusLabel);
                         }
                     },
                     () => {
-                        this.fallbackWeather(statsEl, statusLabel);
+                        this.fallbackWeather(statusLabel);
                     }
                 );
             }
 
-            fallbackWeather(statsEl, statusLabel) {
-                this.env.temperature = 23;
-                this.env.humidity = 60;
+            fallbackWeather(statusLabel) {
+                this.env.temperature = 22;
+                this.env.humidity = 45;
                 this.env.isNight = false;
-                this.env.wind = 0.4;
-                statsEl.innerHTML = `Grid: <span>Synthetic Zone</span><br>Temp: <span>23°C</span> | Hum: <span>60%</span>`;
-                statusLabel.innerText = "Synthetic Mode Active";
+                this.env.wind = 0.2;
+                
+                document.getElementById('val-loc').innerText = `Default`;
+                document.getElementById('val-temp').innerText = `22°C`;
+                document.getElementById('val-hum').innerText = `45%`;
+                document.getElementById('val-wind').innerText = `0.2 m/s`;
+                
+                statusLabel.innerText = "Running default simulation";
                 this.buildEcosystem();
             }
 
             buildEcosystem() {
                 this.plants = [];
-                const plantCount = Math.max(5, Math.floor(this.width / 150));
+                // Adapts plant count automatically based on screen width (Mobile vs PC)
+                const plantCount = Math.max(4, Math.floor(this.width / 150));
                 for (let i = 0; i < plantCount; i++) {
-                    const x = (this.width / (plantCount + 1)) * (i + 1) + (Math.random() * 50 - 25);
+                    const x = (this.width / (plantCount + 1)) * (i + 1) + (Math.random() * 40 - 20);
                     this.plants.push(new ProceduralPlant(x, this.height * 0.85, this.env));
                 }
-                for (let i = 0; i < 3; i++) {
+                for (let i = 0; i < 2; i++) {
                     this.organisms.push(new CrawlingOrganism(Math.random() * this.width, this.height * 0.85));
                 }
             }
 
             addSandLayer() {
                 this.hasSand = true;
-                document.getElementById('status-label').innerText = "Mineral Sand Substrate Added";
+                document.getElementById('status-label').innerText = "Sand layer added";
             }
 
             toggleWater() {
                 this.hasWater = !this.hasWater;
-                document.getElementById('status-label').innerText = this.hasWater ? "Aquatic Hydration Layer Active" : "Arid Terrarium Mode";
+                document.getElementById('status-label').innerText = this.hasWater ? "Water layer added" : "Water removed";
                 if (this.hasWater && this.fish.length === 0) {
-                    for(let i = 0; i < 3; i++) {
+                    for(let i = 0; i < 2; i++) {
                         this.fish.push(new Fish(Math.random() * this.width, this.height * 0.6));
                     }
                 }
             }
 
             spawnEgg() {
-                this.eggs.push(new FishEgg(Math.random() * (this.width - 200) + 100, this.height * 0.82));
-                document.getElementById('status-label').innerText = "New Biomass Egg Spawned";
+                this.eggs.push(new FishEgg(Math.random() * (this.width - 100) + 50, this.height * 0.82));
+                document.getElementById('status-label').innerText = "Egg added";
             }
 
             spawnOrganism() {
                 this.organisms.push(new CrawlingOrganism(Math.random() * this.width, this.height * 0.85));
-                document.getElementById('status-label').innerText = "Micro-Organism Introduced";
+                document.getElementById('status-label').innerText = "Bug added";
             }
 
             triggerMutation() {
                 this.plants.forEach(plant => plant.mutate(this.env));
-                document.getElementById('status-label').innerText = "AI Rapid Mutation Triggered";
-                setTimeout(() => {
-                    document.getElementById('status-label').innerText = this.env.isNight ? "Night Cycle • Spore Active" : "Day Cycle • Photosynthesis";
-                }, 2500);
+                document.getElementById('status-label').innerText = "Flora regenerated";
             }
 
             update() {
@@ -282,11 +353,11 @@
                     if (egg.hatched) {
                         this.fish.push(new Fish(egg.x, egg.y));
                         this.eggs.splice(i, 1);
-                        document.getElementById('status-label').innerText = "An Egg Has Hatched!";
+                        document.getElementById('status-label').innerText = "Egg hatched";
                     }
                 }
 
-                if (Math.random() < 0.4) {
+                if (Math.random() < 0.3) {
                     const randomPlant = this.plants[Math.floor(Math.random() * this.plants.length)];
                     if (randomPlant) {
                         this.particles.push(new AmbientParticle(randomPlant.tipX, randomPlant.tipY, this.env, this.hasWater));
@@ -303,38 +374,32 @@
             }
 
             draw() {
-                const grad = this.ctx.createLinearGradient(0, 0, 0, this.height);
-                if (this.env.isNight) {
-                    grad.addColorStop(0, '#02040a');
-                    grad.addColorStop(1, '#0b162c');
-                } else {
-                    grad.addColorStop(0, '#022340');
-                    grad.addColorStop(0.5, '#0284c7');
-                    grad.addColorStop(1, '#7dd3fc');
-                }
-                this.ctx.fillStyle = grad;
+                this.ctx.fillStyle = this.env.isNight ? '#0a0a0a' : '#1a242f';
                 this.ctx.fillRect(0, 0, this.width, this.height);
 
                 const floorY = this.height * 0.85;
 
                 if (this.hasSand) {
-                    this.ctx.fillStyle = '#d4b27c';
+                    this.ctx.fillStyle = '#C2A379';
                     this.ctx.fillRect(0, floorY, this.width, this.height - floorY);
-                    this.ctx.fillStyle = '#b38f58';
-                    for (let i = 0; i < this.width; i += 15) {
-                        this.ctx.fillRect(i + (i % 7), floorY + 5, 3, 3);
-                    }
                 } else {
-                    this.ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                    this.ctx.fillStyle = '#111111';
                     this.ctx.fillRect(0, floorY, this.width, this.height - floorY);
+                    this.ctx.strokeStyle = '#333333';
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, floorY);
+                    this.ctx.lineTo(this.width, floorY);
+                    this.ctx.stroke();
                 }
 
                 if (this.hasWater) {
-                    const waterGrad = this.ctx.createLinearGradient(0, this.height * 0.4, 0, floorY);
-                    waterGrad.addColorStop(0, 'rgba(56, 189, 248, 0.15)');
-                    waterGrad.addColorStop(1, 'rgba(14, 116, 144, 0.35)');
-                    this.ctx.fillStyle = waterGrad;
+                    this.ctx.fillStyle = 'rgba(74, 144, 226, 0.2)';
                     this.ctx.fillRect(0, this.height * 0.4, this.width, floorY - (this.height * 0.4));
+                    this.ctx.strokeStyle = 'rgba(74, 144, 226, 0.4)';
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, this.height * 0.4);
+                    this.ctx.lineTo(this.width, this.height * 0.4);
+                    this.ctx.stroke();
                 }
 
                 this.plants.forEach(p => p.draw(this.ctx));
@@ -360,26 +425,24 @@
             }
 
             mutate(env) {
-                this.segments = Math.floor(4 + Math.random() * 4);
-                this.baseLength = 25 + (env.humidity * 0.4) + Math.random() * 25;
-                this.angleVar = (Math.random() - 0.5) * 0.4;
-                this.hue = Math.floor(120 + (env.temperature * 1.5) + (Math.random() * 30 - 15));
-                this.thickness = 3 + Math.random() * 3;
+                this.segments = Math.floor(4 + Math.random() * 3);
+                this.baseLength = 30 + (env.humidity * 0.3) + Math.random() * 20;
+                this.angleVar = (Math.random() - 0.5) * 0.3;
+                this.thickness = 3 + Math.random() * 2;
                 this.nodeSwayOffset = Math.random() * 100;
                 this.tipX = this.x;
                 this.tipY = this.y - (this.segments * this.baseLength);
             }
 
             update(env, time) {
-                this.sway = Math.sin(time * 1.8 + this.nodeSwayOffset) * (env.wind * 0.6);
+                this.sway = Math.sin(time * 1.5 + this.nodeSwayOffset) * (env.wind * 0.8);
             }
 
             draw(ctx) {
                 ctx.save();
-                ctx.strokeStyle = `hsl(${this.hue}, 55%, ${this.env.isNight ? 22 : 38}%)`;
+                ctx.strokeStyle = '#4A7C59';
                 ctx.lineWidth = this.thickness;
-                ctx.lineCap = 'round';
-
+                ctx.lineCap = 'square'; 
                 ctx.beginPath();
                 ctx.moveTo(this.x, this.y);
 
@@ -389,33 +452,20 @@
                 for (let i = 0; i < this.segments; i++) {
                     const segmentFactor = (i + 1) / this.segments;
                     currX += Math.sin(this.angleVar * i + this.sway) * (this.baseLength * 0.4);
-                    currY -= this.baseLength * (1 - segmentFactor * 0.15);
+                    currY -= this.baseLength * (1 - segmentFactor * 0.1);
                     
                     if (i === this.segments - 1) {
                         this.tipX = currX;
                         this.tipY = currY;
                     }
-
                     ctx.lineTo(currX, currY);
                 }
-
                 ctx.stroke();
 
-                const glowRadius = this.thickness * 4;
-                const radialGrad = ctx.createRadialGradient(this.tipX, this.tipY, 0, this.tipX, this.tipY, glowRadius);
-                radialGrad.addColorStop(0, `hsla(${this.hue + 40}, 90%, 70%, 0.8)`);
-                radialGrad.addColorStop(1, 'hsla(0, 0%, 0%, 0)');
-                
-                ctx.fillStyle = radialGrad;
+                ctx.fillStyle = '#FF6B00';
                 ctx.beginPath();
-                ctx.arc(this.tipX, this.tipY, glowRadius, 0, Math.PI * 2);
+                ctx.arc(this.tipX, this.tipY, this.thickness + 1, 0, Math.PI * 2);
                 ctx.fill();
-
-                ctx.fillStyle = `hsl(${this.hue + 30}, 85%, 65%)`;
-                ctx.beginPath();
-                ctx.arc(this.tipX, this.tipY, this.thickness * 1.2, 0, Math.PI * 2);
-                ctx.fill();
-
                 ctx.restore();
             }
         }
@@ -424,16 +474,14 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.radius = 6;
+                this.radius = 4;
                 this.hatchTimer = 0;
-                this.hatchTimeMax = 300 + Math.random() * 200;
-                this.harnessedPulse = 0;
+                this.hatchTimeMax = 200 + Math.random() * 100;
                 this.hatched = false;
             }
 
             update() {
                 this.hatchTimer++;
-                this.harnessedPulse += 0.1;
                 if (this.hatchTimer >= this.hatchTimeMax) {
                     this.hatched = true;
                 }
@@ -441,14 +489,10 @@
 
             draw(ctx) {
                 ctx.save();
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.fillStyle = '#E0E0E0';
                 ctx.beginPath();
-                const pulse = Math.sin(this.harnessedPulse) * 1;
-                ctx.arc(this.x, this.y, this.radius + pulse, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.strokeStyle = '#38bdf8';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
                 ctx.restore();
             }
         }
@@ -457,19 +501,18 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vx = (Math.random() - 0.5) * 2;
                 this.vy = (Math.random() - 0.5) * 0.5;
-                this.size = 12 + Math.random() * 8;
+                this.size = 10 + Math.random() * 6;
                 this.tailWiggle = 0;
-                this.color = `hsl(${Math.random() * 60 + 10}, 80%, 60%)`;
             }
 
             update(width, height, hasWater) {
-                this.tailWiggle += 0.2;
+                this.tailWiggle += 0.3;
                 this.x += this.vx;
                 this.y += this.vy + Math.sin(this.tailWiggle * 0.5) * 0.2;
 
-                if (this.x < 50 || this.x > width - 50) this.vx *= -1;
+                if (this.x < 20 || this.x > width - 20) this.vx *= -1;
                 if (this.y < height * 0.45 || this.y > height * 0.8) this.vy *= -1;
             }
 
@@ -478,19 +521,21 @@
                 ctx.translate(this.x, this.y);
                 if (this.vx < 0) ctx.scale(-1, 1);
 
-                ctx.fillStyle = this.color;
+                ctx.fillStyle = '#FF6B00'; 
                 ctx.beginPath();
-                ctx.ellipse(0, 0, this.size, this.size * 0.5, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.beginPath();
-                const tailOffset = Math.sin(this.tailWiggle) * 5;
-                ctx.moveTo(-this.size, 0);
-                ctx.lineTo(-this.size - 8, -6 + tailOffset);
-                ctx.lineTo(-this.size - 8, 6 + tailOffset);
+                ctx.moveTo(this.size, 0);
+                ctx.lineTo(-this.size, -this.size/2);
+                ctx.lineTo(-this.size, this.size/2);
                 ctx.closePath();
                 ctx.fill();
 
+                ctx.beginPath();
+                const tailOffset = Math.sin(this.tailWiggle) * 4;
+                ctx.moveTo(-this.size, 0);
+                ctx.lineTo(-this.size - 6, -4 + tailOffset);
+                ctx.lineTo(-this.size - 6, 4 + tailOffset);
+                ctx.closePath();
+                ctx.fill();
                 ctx.restore();
             }
         }
@@ -499,33 +544,19 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.vx = (Math.random() - 0.5) * 0.6;
-                this.size = 4 + Math.random() * 3;
-                this.legPhase = 0;
+                this.vx = (Math.random() - 0.5) * 0.8;
+                this.size = 3;
             }
 
             update(width) {
                 this.x += this.vx;
-                this.legPhase += 0.3;
-                if (this.x < 20 || this.x > width - 20) this.vx *= -1;
+                if (this.x < 10 || this.x > width - 10) this.vx *= -1;
             }
 
             draw(ctx) {
                 ctx.save();
-                ctx.fillStyle = '#cbd5e1';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y - this.size, this.size, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.strokeStyle = '#94a3b8';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(this.x - 3, this.y);
-                ctx.lineTo(this.x - 5, this.y + 3);
-                ctx.moveTo(this.x + 3, this.y);
-                ctx.lineTo(this.x + 5, this.y + 3);
-                ctx.stroke();
-
+                ctx.fillStyle = '#888888';
+                ctx.fillRect(this.x - this.size, this.y - this.size, this.size * 2, this.size);
                 ctx.restore();
             }
         }
@@ -534,28 +565,23 @@
             constructor(x, y, env, hasWater) {
                 this.x = x;
                 this.y = y;
-                this.vx = (Math.random() - 0.5) * 0.5 + (env.wind * 0.3);
-                this.vy = hasWater ? -Math.random() * 1.5 - 0.5 : -Math.random() * 1.0 - 0.3;
-                this.alpha = 0.9;
-                this.size = Math.random() * 2.5 + 0.8;
-                this.color = hasWater ? '#38bdf8' : (env.isNight ? '#38bdf8' : '#a7f3d0');
+                this.vx = (Math.random() - 0.5) * 0.5 + (env.wind * 0.5);
+                this.vy = hasWater ? -Math.random() * 1.2 - 0.2 : -Math.random() * 0.8 - 0.2;
+                this.alpha = 1.0;
+                this.size = 2;
             }
 
             update(env, hasWater) {
-                this.x += this.vx + (env.wind * 0.15);
+                this.x += this.vx + (env.wind * 0.2);
                 this.y += this.vy;
-                this.alpha -= hasWater ? 0.012 : 0.007;
+                this.alpha -= 0.01;
             }
 
             draw(ctx) {
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, this.alpha);
-                ctx.fillStyle = this.color;
-                ctx.shadowColor = this.color;
-                ctx.shadowBlur = 6;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.fillStyle = '#A0A0A0';
+                ctx.fillRect(this.x, this.y, this.size, this.size);
                 ctx.restore();
             }
         }
