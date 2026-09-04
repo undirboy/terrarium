@@ -3,514 +3,431 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terrarium Simulator Sandbox</title>
+    <title>Terrarium Simulator - Orb.farm Engine</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #121212;
-            color: #E0E0E0;
+            width: 100%; height: 100%; overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #07090e; color: #E0E0E0;
             overscroll-behavior-y: none;
         }
 
         #terrarium-canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-            touch-action: none;
-            cursor: crosshair;
+            display: block; width: 100vw; height: 100vh;
+            touch-action: none; cursor: crosshair;
+            image-rendering: pixelated;
         }
 
         .ui-panel {
-            position: absolute;
-            top: 24px;
-            left: 24px;
-            width: calc(100% - 48px);
-            max-width: 340px;
-            background-color: #1E1E1E;
-            border: 1px solid #333333;
-            padding: 20px;
-            pointer-events: auto;
-            border-radius: 6px;
-            max-height: calc(100vh - 48px);
-            overflow-y: auto;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            z-index: 10;
+            position: absolute; top: 16px; left: 16px;
+            width: calc(100% - 32px); max-width: 320px;
+            background-color: #12151d; border: 1px solid #232938;
+            padding: 16px; pointer-events: auto; border-radius: 6px;
+            max-height: calc(100vh - 32px); overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 10;
         }
 
-        h1 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #FFFFFF;
-            margin-bottom: 4px;
-            line-height: 1.2;
-        }
-
-        .subtitle {
-            font-size: 0.8rem;
-            color: #A0A0A0;
-            margin-bottom: 16px;
-        }
+        h1 { font-size: 1.1rem; font-weight: 600; color: #FFFFFF; margin-bottom: 2px; }
+        .subtitle { font-size: 0.72rem; color: #7a8296; margin-bottom: 12px; }
 
         .data-section {
-            background-color: #262626;
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 16px;
+            background-color: #181d28; padding: 10px; border-radius: 4px; margin-bottom: 12px;
         }
-
         .data-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            line-height: 1.5;
-            margin-bottom: 4px;
+            display: flex; justify-content: space-between; font-size: 0.72rem;
+            line-height: 1.5; margin-bottom: 2px;
         }
         .data-row:last-child { margin-bottom: 0; }
-        .data-label { color: #888888; }
-        .data-value {
-            color: #FFFFFF;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 0.8rem;
-        }
+        .data-label { color: #6b7280; }
+        .data-value { color: #FFFFFF; font-family: ui-monospace, monospace; }
 
         .section-label {
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #777777;
-            margin-bottom: 6px;
-            margin-top: 14px;
-            font-weight: 600;
+            font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px;
+            color: #6b7280; margin-bottom: 6px; margin-top: 10px; font-weight: 600;
         }
 
-        .controls-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
+        .controls-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 
         button {
-            background-color: #2A2A2A;
-            color: #E0E0E0;
-            border: 1px solid #404040;
-            padding: 9px 6px;
-            font-size: 0.8rem;
-            font-family: inherit;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.15s ease;
-            user-select: none;
-            -webkit-user-select: none;
-            text-align: center;
+            background-color: #1c2230; color: #D0D5E0; border: 1px solid #293245;
+            padding: 7px 4px; font-size: 0.72rem; font-family: inherit;
+            cursor: pointer; border-radius: 4px; transition: all 0.15s ease;
+            user-select: none; -webkit-user-select: none; text-align: center;
         }
-
-        button:active { background-color: #404040; }
-
+        button:active { background-color: #273044; }
         @media (hover: hover) {
-            button:hover {
-                background-color: #333333;
-                border-color: #666666;
-                color: #FFFFFF;
-            }
+            button:hover { background-color: #273044; border-color: #3e4c6a; color: #FFF; }
         }
 
         button.active-tool {
-            background-color: #FF6B00;
-            color: #000;
-            border-color: #FF6B00;
-            font-weight: 600;
+            background-color: #FF6B00; color: #000; border-color: #FF6B00; font-weight: 600;
         }
-
         button.speed-btn {
-            background-color: #1A3A5A;
-            border-color: #2A5A8A;
-            color: #88C0D0;
-            font-weight: 600;
-        }
-
-        @media (max-width: 480px) {
-            .ui-panel { top: 12px; left: 12px; width: calc(100% - 24px); padding: 14px; }
-            h1 { font-size: 1.05rem; }
-            .subtitle { font-size: 0.75rem; margin-bottom: 12px; }
-            button { font-size: 0.75rem; padding: 8px 4px; }
+            background-color: #122434; border-color: #1b3a54; color: #64b5f6; font-weight: 600;
         }
     </style>
 </head>
 <body>
 
     <div class="ui-panel" id="ui-panel">
-        <h1>Terrarium Sandbox</h1>
-        <div class="subtitle">Physics, sensory fidget, and live climate.</div>
+        <h1>Orb Ecosystem</h1>
+        <div class="subtitle">Cellular automata, gas cycles & living bio-grid.</div>
         
         <div class="data-section">
             <div class="data-row">
-                <span class="data-label">Climate</span>
-                <span class="data-value" id="val-climate">--°C / --%</span>
+                <span class="data-label">Oxygen ($O_2$)</span>
+                <span class="data-value" id="val-o2">100 ppm</span>
             </div>
             <div class="data-row">
-                <span class="data-label">Cycle</span>
-                <span class="data-value" id="val-time">--</span>
+                <span class="data-label">Carbon Dioxide ($CO_2$)</span>
+                <span class="data-value" id="val-co2">40 ppm</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Climate / Cycle</span>
+                <span class="data-value" id="val-climate">22°C / Day</span>
             </div>
         </div>
 
-        <div class="section-label">Interactive & Sensory Tools</div>
+        <div class="section-label">Cellular Powder Tools</div>
         <div class="controls-grid">
-            <button class="tool-btn active-tool" onclick="terrarium.setTool('interact')" id="tool-interact">✨ Touch / Pop</button>
-            <button class="tool-btn" onclick="terrarium.setTool('magnet')" id="tool-magnet">🧲 Magnet</button>
-            <button class="tool-btn" onclick="terrarium.setTool('rain')" id="tool-rain">🌧️ Rain</button>
-            <button class="tool-btn" onclick="terrarium.setTool('sand')" id="tool-sand">⏳ Pour Sand</button>
-            <button class="tool-btn" onclick="terrarium.setTool('water')" id="tool-water">💧 Pour Water</button>
-            <button class="tool-btn" onclick="terrarium.setTool('food')" id="tool-food">🍞 Drop Food</button>
-            <button class="tool-btn" onclick="terrarium.setTool('seed')" id="tool-seed" style="grid-column: span 2;">🌱 Plant Seed</button>
+            <button class="tool-btn active-tool" onclick="terrarium.setTool('sand')" id="tool-sand">⏳ Sand</button>
+            <button class="tool-btn" onclick="terrarium.setTool('water')" id="tool-water">💧 Water</button>
+            <button class="tool-btn" onclick="terrarium.setTool('stone')" id="tool-stone">🪨 Stone Barrier</button>
+            <button class="tool-btn" onclick="terrarium.setTool('algae')" id="tool-algae">🌿 Algae</button>
+            <button class="tool-btn" onclick="terrarium.setTool('food')" id="tool-food">🍞 Food Pellet</button>
+            <button class="tool-btn" onclick="terrarium.setTool('erase')" id="tool-erase">🧹 Vacuum / Clear</button>
         </div>
 
-        <div class="section-label">Ecosystem Actions</div>
+        <div class="section-label">Fauna & Organisms</div>
         <div class="controls-grid">
-            <button onclick="terrarium.spawnOrganism()">🐛 Add Bug</button>
-            <button onclick="terrarium.spawnEgg()">🥚 Add Egg</button>
+            <button onclick="terrarium.spawnDaphnia()">🦐 Add Daphnia</button>
+            <button onclick="terrarium.spawnFish()">🐟 Add Fish</button>
+            <button onclick="terrarium.spawnSnail()">🐌 Add Snail</button>
+            <button onclick="terrarium.spawnBug()">🐛 Add Bug</button>
+        </div>
+
+        <div class="section-label">Environment & Time</div>
+        <div class="controls-grid">
             <button onclick="terrarium.toggleNight()" id="btn-night">🌙 Toggle Night</button>
             <button class="speed-btn" onclick="terrarium.toggleSpeed()" id="btn-speed">⏩ Speed: 1x</button>
-            <button onclick="terrarium.clearCanvas()" style="grid-column: span 2;">🔄 Clear Sandbox</button>
+            <button onclick="terrarium.resetEco()" style="grid-column: span 2;">🔄 Reset Orb</button>
         </div>
     </div>
 
     <canvas id="terrarium-canvas"></canvas>
 
     <script>
+        // Cellular ID Enums
+        const EMPTY = 0, SAND = 1, WATER = 2, STONE = 3, ALGAE = 4, WOOD = 5;
+
         class DigitalTerrarium {
             constructor() {
                 this.canvas = document.getElementById('terrarium-canvas');
                 this.ctx = this.canvas.getContext('2d');
                 
+                // Simulation Grid Settings (Cellular automatas run on scaled buffer for 60fps)
+                this.scale = 4; 
                 this.resize();
                 window.addEventListener('resize', () => this.resize());
                 window.addEventListener('orientationchange', () => setTimeout(() => this.resize(), 100));
 
-                this.env = { temperature: 20, humidity: 50, isNight: false, wind: 0.1 };
+                this.env = { temperature: 22, isNight: false, wind: 0.1 };
                 this.forceNight = false;
 
-                // Entities
-                this.plants = [];
-                this.particles = [];
+                // Atmospheric Gas Reservoirs
+                this.oxygen = 120;
+                this.co2 = 45;
+
+                // Micro-Organisms & Autonomous Agents
                 this.fish = [];
-                this.eggs = [];
-                this.organisms = [];
-                this.drops = []; 
+                this.daphnia = [];
+                this.snails = [];
+                this.bugs = [];
                 this.foods = [];
-                this.raindrops = [];
-                this.ripples = [];
-                
-                // Physics Bounds
-                this.sandLevel = 20; 
-                this.waterLevel = 0;
-                this.floorY = this.height * 0.9;
-                
-                // Simulation State
+                this.gases = []; // Rising O2 & CO2 microscopic bubble particles
+
                 this.time = 0;
                 this.timeScale = 1;
-                this.activeTool = 'interact';
+                this.activeTool = 'sand';
                 this.isPointerDown = false;
                 this.pointerX = 0;
                 this.pointerY = 0;
 
                 this.setupInputs();
-                this.initGPSAndWeather();
+                this.initDefaultWorld();
             }
 
             resize() {
                 this.width = window.innerWidth;
                 this.height = window.innerHeight;
-                this.canvas.width = this.width * window.devicePixelRatio;
-                this.canvas.height = this.height * window.devicePixelRatio;
-                this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-                this.floorY = this.height * 0.9;
+                this.canvas.width = this.width;
+                this.canvas.height = this.height;
+
+                this.gw = Math.floor(this.width / this.scale);
+                this.gh = Math.floor(this.height / this.scale);
+                this.grid = new Uint8Array(this.gw * this.gh);
+                this.gridNext = new Uint8Array(this.gw * this.gh);
             }
 
             setupInputs() {
-                const updatePointer = (e) => {
-                    this.pointerX = e.clientX || (e.touches && e.touches[0].clientX);
-                    this.pointerY = e.clientY || (e.touches && e.touches[0].clientY);
+                const getCoords = (e) => {
+                    const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+                    const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+                    return {
+                        gx: Math.floor(clientX / this.scale),
+                        gy: Math.floor(clientY / this.scale)
+                    };
                 };
 
                 this.canvas.addEventListener('pointerdown', (e) => {
                     if (e.target !== this.canvas) return;
                     this.isPointerDown = true;
-                    updatePointer(e);
-                    
-                    if (this.activeTool === 'seed') {
-                        this.plants.push(new ProceduralPlant(this.pointerX, this.floorY, this.env));
-                    } else if (this.activeTool === 'interact') {
-                        this.ripples.push(new SensoryRipple(this.pointerX, this.pointerY));
-                    }
+                    const { gx, gy } = getCoords(e);
+                    this.pointerX = gx; this.pointerY = gy;
                 });
 
                 this.canvas.addEventListener('pointermove', (e) => {
                     if (!this.isPointerDown) return;
-                    updatePointer(e);
-                    if (this.activeTool === 'interact' && Math.random() < 0.25) {
-                        this.ripples.push(new SensoryRipple(this.pointerX, this.pointerY));
-                    }
+                    const { gx, gy } = getCoords(e);
+                    this.pointerX = gx; this.pointerY = gy;
                 });
 
                 window.addEventListener('pointerup', () => this.isPointerDown = false);
             }
 
-            setTool(toolName) {
-                this.activeTool = toolName;
-                document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active-tool'));
-                document.getElementById(`tool-${toolName}`).classList.add('active-tool');
+            setTool(t) {
+                this.activeTool = t;
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active-tool'));
+                const el = document.getElementById(`tool-${t}`);
+                if (el) el.classList.add('active-tool');
             }
 
             toggleSpeed() {
-                if (this.timeScale === 1) this.timeScale = 3;
-                else if (this.timeScale === 3) this.timeScale = 10;
-                else this.timeScale = 1;
+                this.timeScale = this.timeScale === 1 ? 3 : (this.timeScale === 3 ? 8 : 1);
                 document.getElementById('btn-speed').innerText = `⏩ Speed: ${this.timeScale}x`;
             }
 
             toggleNight() {
                 this.forceNight = !this.forceNight;
-                const isNightActive = this.forceNight || this.env.isNight;
-                document.getElementById('val-time').innerText = isNightActive ? "Night (Active)" : "Day (Active)";
+                document.getElementById('val-climate').innerText = `22°C / ${(this.forceNight || this.env.isNight) ? 'Night' : 'Day'}`;
                 document.getElementById('btn-night').innerText = this.forceNight ? "☀️ Reset Cycle" : "🌙 Force Night";
             }
 
-            clearCanvas() {
-                this.plants = [];
-                this.fish = [];
-                this.eggs = [];
-                this.organisms = [];
-                this.sandLevel = 20;
-                this.waterLevel = 0;
-                this.drops = [];
-                this.foods = [];
-                this.raindrops = [];
-                this.ripples = [];
-            }
-
-            async initGPSAndWeather() {
-                if (!navigator.geolocation) {
-                    this.fallbackWeather();
-                    return;
+            initDefaultWorld() {
+                this.grid.fill(EMPTY);
+                // Floor base
+                for (let x = 0; x < this.gw; x++) {
+                    for (let y = this.gh - 18; y < this.gh; y++) {
+                        this.setCell(x, y, SAND);
+                    }
                 }
-                navigator.geolocation.getCurrentPosition(
-                    async (position) => {
-                        const { latitude, longitude } = position.coords;
-                        try {
-                            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,is_day,wind_speed_10m`);
-                            const data = await res.json();
-                            this.env.temperature = data.current.temperature_2m;
-                            this.env.humidity = data.current.relative_humidity_2m;
-                            this.env.isNight = data.current.is_day === 0;
-                            this.env.wind = Math.max(0.1, data.current.wind_speed_10m / 10);
-                            
-                            document.getElementById('val-climate').innerText = `${this.env.temperature}°C / ${this.env.humidity}%`;
-                            document.getElementById('val-time').innerText = (this.forceNight || this.env.isNight) ? "Night" : "Day";
-                            this.buildEcosystem();
-                        } catch (e) { this.fallbackWeather(); }
-                    },
-                    () => { this.fallbackWeather(); }
-                );
-            }
-
-            fallbackWeather() {
-                this.env = { temperature: 22, humidity: 45, isNight: false, wind: 0.2 };
-                document.getElementById('val-climate').innerText = `22°C / 45% (Def)`;
-                document.getElementById('val-time').innerText = "Day (Def)";
-                this.buildEcosystem();
-            }
-
-            buildEcosystem() {
-                this.clearCanvas();
-                const plantCount = Math.max(3, Math.floor(this.width / 200));
-                for (let i = 0; i < plantCount; i++) {
-                    const x = (this.width / (plantCount + 1)) * (i + 1) + (Math.random() * 40 - 20);
-                    this.plants.push(new ProceduralPlant(x, this.floorY, this.env));
+                // Water column
+                for (let x = 0; x < this.gw; x++) {
+                    for (let y = this.gh - 65; y < this.gh - 18; y++) {
+                        this.setCell(x, y, WATER);
+                    }
                 }
-                for (let i = 0; i < 2; i++) this.spawnOrganism();
+                // Initial Algae Beds
+                for (let x = 10; x < this.gw - 10; x += 3) {
+                    this.setCell(x, this.gh - 19, ALGAE);
+                }
+
+                // Fauna
+                this.fish = [new Fish(this.gw / 2, this.gh - 40)];
+                this.daphnia = [new Daphnia(this.gw / 3, this.gh - 35), new Daphnia(this.gw * 0.7, this.gh - 30)];
+                this.snails = [new Snail(this.gw / 4, this.gh - 18)];
+                this.bugs = [new Bug(this.gw / 2, this.gh - 19)];
             }
 
-            spawnEgg() {
-                this.eggs.push(new FishEgg(Math.random() * (this.width - 100) + 50, this.height * 0.2));
+            resetEco() {
+                this.daphnia = []; this.fish = []; this.snails = []; this.bugs = [];
+                this.foods = []; this.gases = [];
+                this.initDefaultWorld();
             }
 
-            spawnOrganism() {
-                this.organisms.push(new CrawlingOrganism(Math.random() * this.width));
+            getCell(x, y) {
+                if (x < 0 || x >= this.gw || y < 0 || y >= this.gh) return STONE;
+                return this.grid[y * this.gw + x];
             }
 
-            handleTools(dt) {
-                if (this.isPointerDown) {
-                    if (this.activeTool === 'sand' || this.activeTool === 'water') {
-                        const dropsToSpawn = Math.max(1, Math.floor(3 * dt));
-                        for (let i = 0; i < dropsToSpawn; i++) {
-                            this.drops.push(new Drop(this.pointerX, this.pointerY, this.activeTool));
-                        }
-                    } else if (this.activeTool === 'food') {
-                        if (Math.random() < 0.15 * dt && this.foods.length < 50) {
-                            this.foods.push(new Food(this.pointerX, this.pointerY));
-                        }
-                    } else if (this.activeTool === 'rain') {
-                        const rainCount = Math.max(2, Math.floor(4 * dt));
-                        for (let i = 0; i < rainCount; i++) {
-                            this.raindrops.push(new RainDrop(Math.random() * this.width, 0, this.env.wind));
+            setCell(x, y, val) {
+                if (x >= 0 && x < this.gw && y >= 0 && y < this.gh) {
+                    this.grid[y * this.gw + x] = val;
+                }
+            }
+
+            applyPaintTool(dt) {
+                if (!this.isPointerDown) return;
+                const r = this.activeTool === 'stone' ? 3 : 2;
+                for (let dy = -r; dy <= r; dy++) {
+                    for (let dx = -r; dx <= r; dx++) {
+                        const nx = this.pointerX + dx;
+                        const ny = this.pointerY + dy;
+                        if (this.activeTool === 'sand') this.setCell(nx, ny, SAND);
+                        else if (this.activeTool === 'water') this.setCell(nx, ny, WATER);
+                        else if (this.activeTool === 'stone') this.setCell(nx, ny, STONE);
+                        else if (this.activeTool === 'algae') this.setCell(nx, ny, ALGAE);
+                        else if (this.activeTool === 'erase') this.setCell(nx, ny, EMPTY);
+                    }
+                }
+                if (this.activeTool === 'food' && Math.random() < 0.25 * dt) {
+                    this.foods.push(new Food(this.pointerX, this.pointerY));
+                }
+            }
+
+            // High-Speed Cellular Automata (Powder / Fluid Physics)
+            updateGrid(dt) {
+                this.gridNext.set(this.grid);
+
+                // Bottom to top to ensure clean gravity falling
+                for (let y = this.gh - 1; y >= 0; y--) {
+                    for (let x = 0; x < this.gw; x++) {
+                        const idx = y * this.gw + x;
+                        const cell = this.grid[idx];
+
+                        if (cell === SAND) {
+                            const below = this.getCell(x, y + 1);
+                            const bl = this.getCell(x - 1, y + 1);
+                            const br = this.getCell(x + 1, y + 1);
+
+                            if (below === EMPTY || below === WATER) {
+                                this.gridNext[idx] = below;
+                                this.gridNext[(y + 1) * this.gw + x] = SAND;
+                            } else if (bl === EMPTY || bl === WATER) {
+                                this.gridNext[idx] = bl;
+                                this.gridNext[(y + 1) * this.gw + (x - 1)] = SAND;
+                            } else if (br === EMPTY || br === WATER) {
+                                this.gridNext[idx] = br;
+                                this.gridNext[(y + 1) * this.gw + (x + 1)] = SAND;
+                            }
+                        } else if (cell === WATER) {
+                            const below = this.getCell(x, y + 1);
+                            if (below === EMPTY) {
+                                this.gridNext[idx] = EMPTY;
+                                this.gridNext[(y + 1) * this.gw + x] = WATER;
+                            } else {
+                                const dir = Math.random() < 0.5 ? 1 : -1;
+                                const side1 = this.getCell(x + dir, y);
+                                const side2 = this.getCell(x - dir, y);
+                                const diag1 = this.getCell(x + dir, y + 1);
+                                const diag2 = this.getCell(x - dir, y + 1);
+
+                                if (diag1 === EMPTY) {
+                                    this.gridNext[idx] = EMPTY;
+                                    this.gridNext[(y + 1) * this.gw + (x + dir)] = WATER;
+                                } else if (diag2 === EMPTY) {
+                                    this.gridNext[idx] = EMPTY;
+                                    this.gridNext[(y + 1) * this.gw + (x - dir)] = WATER;
+                                } else if (side1 === EMPTY) {
+                                    this.gridNext[idx] = EMPTY;
+                                    this.gridNext[y * this.gw + (x + dir)] = WATER;
+                                } else if (side2 === EMPTY) {
+                                    this.gridNext[idx] = EMPTY;
+                                    this.gridNext[y * this.gw + (x - dir)] = WATER;
+                                }
+                            }
+                        } else if (cell === ALGAE) {
+                            // Photosynthesis & Organic Growth Cycle
+                            const isSunlit = !(this.forceNight || this.env.isNight);
+                            if (isSunlit && this.co2 > 10 && Math.random() < 0.0008 * dt) {
+                                // Grow to adjacent wet cell
+                                const nx = x + (Math.random() < 0.5 ? 1 : -1);
+                                const ny = y + (Math.random() < 0.5 ? 1 : -1);
+                                if (this.getCell(nx, ny) === WATER) {
+                                    this.gridNext[ny * this.gw + nx] = ALGAE;
+                                    this.co2 -= 0.5;
+                                    this.oxygen += 0.5;
+                                    if (Math.random() < 0.2) this.gases.push(new GasBubble(x, y, 'O2'));
+                                }
+                            }
                         }
                     }
                 }
+                this.grid.set(this.gridNext);
             }
+
+            spawnDaphnia() { this.daphnia.push(new Daphnia(this.gw / 2, this.gh / 2)); }
+            spawnFish() { this.fish.push(new Fish(this.gw / 2, this.gh / 2)); }
+            spawnSnail() { this.snails.push(new Snail(this.gw / 2, this.gh - 20)); }
+            spawnBug() { this.bugs.push(new Bug(this.gw / 2, this.gh - 20)); }
 
             update() {
                 const dt = this.timeScale;
                 this.time += 0.016 * dt;
-                
-                this.handleTools(dt);
 
-                const sandTop = this.floorY - this.sandLevel;
-                const waterTop = sandTop - this.waterLevel;
-                const hasWater = this.waterLevel > 30;
-                const isMagnetActive = this.isPointerDown && this.activeTool === 'magnet';
+                this.applyPaintTool(dt);
+                this.updateGrid(dt);
 
-                // Sand & Water Drops
-                for (let i = this.drops.length - 1; i >= 0; i--) {
-                    let drop = this.drops[i];
-                    drop.update(dt);
-                    if (drop.type === 'sand' && drop.y >= sandTop) {
-                        if (this.sandLevel < this.height * 0.5) this.sandLevel += 0.05;
-                        this.drops.splice(i, 1);
-                    } else if (drop.type === 'water' && drop.y >= waterTop) {
-                        if (this.waterLevel < this.height * 0.6) this.waterLevel += 0.05;
-                        this.drops.splice(i, 1);
-                    } else if (drop.y > this.height + 50) {
-                        this.drops.splice(i, 1);
-                    }
+                // Update Gas Bubbles
+                for (let i = this.gases.length - 1; i >= 0; i--) {
+                    const g = this.gases[i];
+                    g.update(this, dt);
+                    if (!g.active) this.gases.splice(i, 1);
                 }
 
-                // Raindrops
-                for (let i = this.raindrops.length - 1; i >= 0; i--) {
-                    let r = this.raindrops[i];
-                    r.update(dt);
-                    if (r.y >= waterTop) {
-                        if (this.waterLevel < this.height * 0.6) this.waterLevel += 0.02;
-                        if (Math.random() < 0.1) this.ripples.push(new SensoryRipple(r.x, waterTop, '#4A90E2', 0.8));
-                        this.raindrops.splice(i, 1);
-                    } else if (r.y >= sandTop) {
-                        this.raindrops.splice(i, 1);
-                    }
-                }
-
-                // Sensory Ripples
-                for (let i = this.ripples.length - 1; i >= 0; i--) {
-                    let rip = this.ripples[i];
-                    rip.update(dt);
-                    if (!rip.active) this.ripples.splice(i, 1);
-                }
-
-                // Food Pellets
+                // Update Food Pellets
                 for (let i = this.foods.length - 1; i >= 0; i--) {
-                    let food = this.foods[i];
-                    if (isMagnetActive) {
-                        food.applyMagnet(this.pointerX, this.pointerY, dt);
-                    }
-                    food.update(sandTop, waterTop, hasWater, dt);
-                    if (!food.active) this.foods.splice(i, 1);
+                    const f = this.foods[i];
+                    f.update(this, dt);
+                    if (!f.active) this.foods.splice(i, 1);
                 }
 
-                // Tactile Flora
-                this.plants.forEach(p => p.update(this.env, this.time, this.isPointerDown, this.pointerX, this.pointerY, dt));
-                
-                // Organisms
-                this.organisms.forEach(o => {
-                    if (isMagnetActive) o.applyMagnet(this.pointerX, this.pointerY, dt);
-                    o.update(this.width, sandTop, this.foods, dt);
-                });
+                // Update Ecosystem Agents
+                this.daphnia.forEach((d, i) => d.update(this, dt, i));
+                this.snails.forEach(s => s.update(this, dt));
+                this.fish.forEach((f, i) => f.update(this, dt, i));
+                this.bugs.forEach(b => b.update(this, dt));
 
-                // Fish
-                this.fish.forEach(f => {
-                    if (isMagnetActive) f.applyMagnet(this.pointerX, this.pointerY, dt);
-                    f.update(this.width, sandTop, waterTop, hasWater, this.foods, dt);
-                });
+                // Clean Dead Agents
+                this.daphnia = this.daphnia.filter(d => d.alive);
+                this.fish = this.fish.filter(f => f.alive);
 
-                // Eggs
-                for (let i = this.eggs.length - 1; i >= 0; i--) {
-                    let egg = this.eggs[i];
-                    egg.update(sandTop, dt);
-                    if (egg.hatched) {
-                        this.fish.push(new Fish(egg.x, egg.y));
-                        this.eggs.splice(i, 1);
-                    }
-                }
-
-                // Ambient Particles
-                if (Math.random() < 0.1 * dt) {
-                    const rp = this.plants[Math.floor(Math.random() * this.plants.length)];
-                    if (rp) this.particles.push(new AmbientParticle(rp.tipX, rp.tipY, this.env, hasWater));
-                }
-
-                for (let i = this.particles.length - 1; i >= 0; i--) {
-                    let p = this.particles[i];
-                    if (isMagnetActive) p.applyMagnet(this.pointerX, this.pointerY, dt);
-                    p.update(this.env, hasWater, dt);
-                    if (p.alpha <= 0) this.particles.splice(i, 1);
-                }
+                // HUD Stats Sync
+                document.getElementById('val-o2').innerText = `${Math.floor(this.oxygen)} ppm`;
+                document.getElementById('val-co2').innerText = `${Math.floor(this.co2)} ppm`;
             }
 
             draw() {
-                const isNightMode = this.forceNight || this.env.isNight;
-                this.ctx.fillStyle = isNightMode ? '#0a0a0a' : '#1a242f';
+                const isNight = this.forceNight || this.env.isNight;
+                this.ctx.fillStyle = isNight ? '#05070a' : '#0e141f';
                 this.ctx.fillRect(0, 0, this.width, this.height);
 
-                const sandTop = this.floorY - this.sandLevel;
-                const waterTop = sandTop - this.waterLevel;
+                // Render Cellular Powder Canvas
+                const imgData = this.ctx.createImageData(this.gw, this.gh);
+                const data = imgData.data;
 
-                this.plants.forEach(p => p.draw(this.ctx));
-
-                // Sand Layer
-                this.ctx.fillStyle = '#C2A379';
-                this.ctx.fillRect(0, sandTop, this.width, this.sandLevel + 100);
-
-                // Water Layer
-                if (this.waterLevel > 0) {
-                    this.ctx.fillStyle = isNightMode ? 'rgba(30, 80, 140, 0.45)' : 'rgba(74, 144, 226, 0.4)';
-                    this.ctx.fillRect(0, waterTop, this.width, this.waterLevel);
-                    this.ctx.strokeStyle = isNightMode ? 'rgba(70, 130, 200, 0.7)' : 'rgba(74, 144, 226, 0.6)';
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(0, waterTop);
-                    this.ctx.lineTo(this.width, waterTop);
-                    this.ctx.stroke();
+                for (let i = 0; i < this.gw * this.gh; i++) {
+                    const cell = this.grid[i];
+                    const idx = i * 4;
+                    if (cell === SAND) {
+                        data[idx] = 194; data[idx+1] = 163; data[idx+2] = 121; data[idx+3] = 255;
+                    } else if (cell === WATER) {
+                        data[idx] = 56; data[idx+1] = 132; data[idx+2] = 210; data[idx+3] = isNight ? 120 : 160;
+                    } else if (cell === STONE) {
+                        data[idx] = 75; data[idx+1] = 82; data[idx+2] = 95; data[idx+3] = 255;
+                    } else if (cell === ALGAE) {
+                        data[idx] = 76; data[idx+1] = 160; data[idx+2] = 88; data[idx+3] = 255;
+                    }
                 }
 
-                // Draw Rain
-                this.raindrops.forEach(r => r.draw(this.ctx));
+                // Draw Powder Layer Up-Scaled
+                createImageBitmap(imgData).then(bmp => {
+                    this.ctx.drawImage(bmp, 0, 0, this.width, this.height);
+                });
 
-                // Draw Entities
-                this.drops.forEach(d => d.draw(this.ctx));
+                // Render High-Resolution Living Fauna
+                this.ctx.save();
+                this.ctx.scale(this.scale, this.scale);
+
+                this.gases.forEach(g => g.draw(this.ctx));
                 this.foods.forEach(f => f.draw(this.ctx));
-                this.eggs.forEach(e => e.draw(this.ctx));
-                this.organisms.forEach(o => o.draw(this.ctx));
+                this.daphnia.forEach(d => d.draw(this.ctx));
+                this.snails.forEach(s => s.draw(this.ctx));
+                this.bugs.forEach(b => b.draw(this.ctx));
                 this.fish.forEach(f => f.draw(this.ctx));
-                this.particles.forEach(p => p.draw(this.ctx));
 
-                // Draw Visual Stimming Ripples
-                this.ripples.forEach(rip => rip.draw(this.ctx));
-
-                // Draw Magnet Reticle when active
-                if (this.isPointerDown && this.activeTool === 'magnet') {
-                    this.ctx.save();
-                    this.ctx.strokeStyle = '#FF6B00';
-                    this.ctx.lineWidth = 1.5;
-                    this.ctx.setLineDash([4, 4]);
-                    this.ctx.beginPath();
-                    this.ctx.arc(this.pointerX, this.pointerY, 40, 0, Math.PI * 2);
-                    this.ctx.stroke();
-                    this.ctx.restore();
-                }
+                this.ctx.restore();
             }
 
             loop() {
@@ -520,359 +437,163 @@
             }
         }
 
-        class SensoryRipple {
-            constructor(x, y, color = '#FF6B00', speed = 1) {
-                this.x = x;
-                this.y = y;
-                this.radius = 2;
-                this.maxRadius = 35 * speed;
-                this.alpha = 1.0;
-                this.color = color;
+        // Rising Oxygen & Carbon Dioxide Bubbles
+        class GasBubble {
+            constructor(x, y, type) {
+                this.x = x; this.y = y;
+                this.type = type;
                 this.active = true;
             }
-            update(dt) {
-                this.radius += 2.2 * dt;
-                this.alpha -= 0.04 * dt;
-                if (this.alpha <= 0 || this.radius >= this.maxRadius) {
-                    this.active = false;
+            update(sim, dt) {
+                this.y -= 0.6 * dt;
+                this.x += (Math.random() - 0.5) * 0.4;
+                const cell = sim.getCell(Math.floor(this.x), Math.floor(this.y));
+                if (cell === EMPTY || this.y < 0) {
+                    this.active = false; // Emitted into open atmosphere
                 }
             }
             draw(ctx) {
-                ctx.save();
-                ctx.globalAlpha = Math.max(0, this.alpha);
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-            }
-        }
-
-        class RainDrop {
-            constructor(x, y, wind) {
-                this.x = x;
-                this.y = y;
-                this.vx = wind * 1.5;
-                this.vy = 12 + Math.random() * 4;
-                this.length = 10 + Math.random() * 5;
-            }
-            update(dt) {
-                this.x += this.vx * dt;
-                this.y += this.vy * dt;
-            }
-            draw(ctx) {
-                ctx.save();
-                ctx.strokeStyle = 'rgba(160, 200, 255, 0.6)';
-                ctx.lineWidth = 1.2;
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(this.x - this.vx * 0.5, this.y + this.length);
-                ctx.stroke();
-                ctx.restore();
-            }
-        }
-
-        class Drop {
-            constructor(x, y, type) {
-                this.x = x + (Math.random() - 0.5) * 20;
-                this.y = y + (Math.random() - 0.5) * 20;
-                this.vx = (Math.random() - 0.5);
-                this.vy = Math.random() * 2 + 1;
-                this.type = type;
-            }
-            update(dt) {
-                this.vy += 0.3 * dt;
-                this.x += this.vx * dt;
-                this.y += this.vy * dt;
-            }
-            draw(ctx) {
-                ctx.fillStyle = this.type === 'sand' ? '#C2A379' : 'rgba(74, 144, 226, 0.8)';
-                ctx.fillRect(this.x, this.y, 4, 4);
+                ctx.fillStyle = this.type === 'O2' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(160, 200, 255, 0.5)';
+                ctx.fillRect(this.x, this.y, 1.2, 1.2);
             }
         }
 
         class Food {
             constructor(x, y) {
-                this.x = x + (Math.random() - 0.5) * 10;
-                this.y = y;
-                this.vx = 0;
-                this.vy = Math.random() * 1.5;
-                this.size = 3 + Math.random() * 2;
+                this.x = x; this.y = y;
                 this.active = true;
             }
-            applyMagnet(px, py, dt) {
-                let dx = px - this.x;
-                let dy = py - this.y;
-                let dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 5 && dist < 250) {
-                    let force = (1 - dist / 250) * 8;
-                    this.vx += (dx / dist) * force * dt;
-                    this.vy += (dy / dist) * force * dt;
-                }
-            }
-            update(sandTop, waterTop, hasWater, dt) {
-                this.x += this.vx * dt;
-                this.vx *= 0.92;
-
-                const surfaceY = hasWater ? waterTop : sandTop;
-                if (this.y < surfaceY - this.size) {
-                    this.vy += 0.2 * dt; 
-                    this.y += this.vy * dt;
-                } else {
-                    this.y = surfaceY - this.size;
-                    this.vy = 0; 
-                }
+            update(sim, dt) {
+                const cellBelow = sim.getCell(Math.floor(this.x), Math.floor(this.y + 1));
+                if (cellBelow === EMPTY) this.y += 0.5 * dt;
+                else if (cellBelow === WATER) this.y += 0.15 * dt; // Slow sinking in water
             }
             draw(ctx) {
-                ctx.fillStyle = '#D2B48C';
-                ctx.fillRect(this.x, this.y, this.size, this.size);
+                ctx.fillStyle = '#FF9800';
+                ctx.fillRect(this.x, this.y, 1.8, 1.8);
             }
         }
 
-        class ProceduralPlant {
-            constructor(x, y, env) {
-                this.x = x;
-                this.y = y;
-                this.env = env;
-                this.touchBend = 0;
-                this.mutate(env);
-            }
-            mutate(env) {
-                this.segments = Math.floor(4 + Math.random() * 3);
-                this.baseLength = 40 + (env.humidity * 0.3) + Math.random() * 20;
-                this.angleVar = (Math.random() - 0.5) * 0.3;
-                this.thickness = 3 + Math.random() * 2;
-                this.nodeSwayOffset = Math.random() * 100;
-                this.tipX = this.x;
-                this.tipY = this.y - (this.segments * this.baseLength);
-            }
-            update(env, time, isDown, px, py, dt) {
-                this.sway = Math.sin(time * 1.5 + this.nodeSwayOffset) * (env.wind * 0.8);
-                
-                // Tactile spring physics: touch interaction
-                if (isDown) {
-                    let dx = px - this.tipX;
-                    let dy = py - this.tipY;
-                    let dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 60) {
-                        this.touchBend = (dx / 60) * 0.6; // bend towards cursor
-                    }
-                }
-                this.touchBend *= Math.pow(0.85, dt); // snap-back oscillation
-            }
-            draw(ctx) {
-                ctx.save();
-                ctx.strokeStyle = '#4A7C59';
-                ctx.lineWidth = this.thickness;
-                ctx.lineCap = 'square'; 
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-
-                let currX = this.x;
-                let currY = this.y;
-
-                for (let i = 0; i < this.segments; i++) {
-                    const segmentFactor = (i + 1) / this.segments;
-                    currX += Math.sin(this.angleVar * i + this.sway + this.touchBend) * (this.baseLength * 0.4);
-                    currY -= this.baseLength * (1 - segmentFactor * 0.1);
-                    if (i === this.segments - 1) { this.tipX = currX; this.tipY = currY; }
-                    ctx.lineTo(currX, currY);
-                }
-                ctx.stroke();
-
-                ctx.fillStyle = '#FF6B00';
-                ctx.beginPath();
-                ctx.arc(this.tipX, this.tipY, this.thickness + 1.5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        }
-
-        class FishEgg {
+        // Daphnia (Water Fleas) - Filter Feeders
+        class Daphnia {
             constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.radius = 4;
-                this.vy = 0;
-                this.hatchTimer = 0;
-                this.hatchTimeMax = 300 + Math.random() * 100;
-                this.hatched = false;
+                this.x = x; this.y = y;
+                this.vx = 0; this.vy = 0;
+                this.alive = true;
             }
-            update(sandTop, dt) {
-                if (this.y < sandTop - this.radius) {
-                    this.vy += 0.2 * dt;
-                    this.y += this.vy * dt;
-                } else {
-                    this.y = sandTop - this.radius;
-                    this.hatchTimer += dt;
+            update(sim, dt) {
+                if (Math.random() < 0.08 * dt) {
+                    this.vx = (Math.random() - 0.5) * 1.5;
+                    this.vy = (Math.random() - 0.6) * 1.5; // Upward darting
                 }
-                if (this.hatchTimer >= this.hatchTimeMax) this.hatched = true;
+                this.vx *= 0.85; this.vy *= 0.85;
+                this.x += this.vx * dt; this.y += this.vy * dt;
+
+                // Eat Algae Nearby
+                const gx = Math.floor(this.x), gy = Math.floor(this.y);
+                if (sim.getCell(gx, gy) === ALGAE) {
+                    sim.setCell(gx, gy, WATER);
+                    sim.co2 += 0.3;
+                }
             }
             draw(ctx) {
-                ctx.fillStyle = '#E0E0E0';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.fillStyle = '#ff7043';
+                ctx.fillRect(this.x, this.y, 1.5, 1.5);
             }
         }
 
+        // Fish - Apex Predator of the Orb
         class Fish {
             constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.vx = (Math.random() - 0.5) * 2;
-                this.vy = (Math.random() - 0.5) * 0.5;
-                this.size = 10 + Math.random() * 6;
-                this.tailWiggle = 0;
+                this.x = x; this.y = y;
+                this.vx = 0.6; this.vy = 0;
+                this.alive = true;
             }
-            applyMagnet(px, py, dt) {
-                let dx = px - this.x;
-                let dy = py - this.y;
-                let dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 5 && dist < 220) {
-                    let force = (1 - dist / 220) * 4;
-                    this.vx += (dx / dist) * force * dt;
-                    this.vy += (dy / dist) * force * dt;
+            update(sim, dt) {
+                // Hunt Daphnia or Food
+                let target = null;
+                let minDist = 35;
+                sim.daphnia.forEach(d => {
+                    const dist = Math.hypot(d.x - this.x, d.y - this.y);
+                    if (dist < minDist) { minDist = dist; target = d; }
+                });
+
+                if (target) {
+                    const a = Math.atan2(target.y - this.y, target.x - this.x);
+                    this.vx += Math.cos(a) * 0.12 * dt;
+                    this.vy += Math.sin(a) * 0.12 * dt;
+                    if (minDist < 3) {
+                        target.alive = false; // Eat Daphnia
+                        sim.co2 += 1.2;
+                        sim.gases.push(new GasBubble(this.x, this.y, 'CO2'));
+                    }
+                } else {
+                    this.vx += (Math.random() - 0.5) * 0.08;
+                    this.vy += (Math.random() - 0.5) * 0.08;
                 }
+
+                this.vx = Math.max(-1.2, Math.min(1.2, this.vx));
+                this.vy = Math.max(-0.6, Math.min(0.6, this.vy));
+                this.x += this.vx * dt; this.y += this.vy * dt;
+
+                // Avoid solid boundaries
+                if (sim.getCell(Math.floor(this.x + this.vx * 3), Math.floor(this.y)) !== WATER) this.vx *= -1;
+                if (sim.getCell(Math.floor(this.x), Math.floor(this.y + this.vy * 3)) !== WATER) this.vy *= -1;
             }
-            update(width, sandTop, waterTop, hasWater, foods, dt) {
-                this.tailWiggle += 0.3 * dt;
-                
-                if (hasWater) {
-                    let targetFood = null;
-                    let minDist = 150;
-                    for (let f of foods) {
-                        if (f.active && f.y <= waterTop + 5) { 
-                            let dx = f.x - this.x;
-                            let dy = f.y - this.y;
-                            let dist = Math.sqrt(dx * dx + dy * dy);
-                            if (dist < minDist) { minDist = dist; targetFood = f; }
-                        }
-                    }
+            draw(ctx) {
+                ctx.fillStyle = '#FF6B00';
+                ctx.fillRect(this.x - 2, this.y - 1, 5, 2.5);
+                ctx.fillRect(this.x - 3, this.y - (this.vx > 0 ? 0 : 0.5), 1.5, 1.5);
+            }
+        }
 
-                    if (targetFood) {
-                        let dx = targetFood.x - this.x;
-                        let dy = targetFood.y - this.y;
-                        let angle = Math.atan2(dy, dx);
-                        this.vx = Math.cos(angle) * 2.5;
-                        this.vy = Math.sin(angle) * 2.5;
-                        if (minDist < 12) targetFood.active = false;
-                    }
+        // Snail - Tank Wall & Floor Algae Scraper
+        class Snail {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.vx = 0.15;
+            }
+            update(sim, dt) {
+                const gx = Math.floor(this.x + this.vx);
+                const gy = Math.floor(this.y);
+                const below = sim.getCell(gx, gy + 1);
 
+                if (below === SAND || below === STONE) {
                     this.x += this.vx * dt;
-                    this.y += (this.vy + Math.sin(this.tailWiggle * 0.5) * 0.2) * dt;
-                    if (this.x < 20 || this.x > width - 20) this.vx *= -1;
-                    if (this.y < waterTop + 10 || this.y > sandTop - 10) this.vy *= -1;
-                } else {
-                    this.vy += 0.3 * dt; 
-                    this.y += this.vy * dt;
-                    this.x += (this.vx * 0.2) * dt; 
-                    
-                    if (this.y > sandTop - this.size/2) {
-                        this.y = sandTop - this.size/2;
-                        if (Math.random() < 0.05 * dt) {
-                            this.vy = -3 - Math.random() * 2;
-                            this.vx = (Math.random() - 0.5) * 4;
-                        }
+                    // Scrape Algae
+                    if (sim.getCell(gx, gy) === ALGAE) {
+                        sim.setCell(gx, gy, EMPTY);
+                        sim.co2 += 0.4;
                     }
-                    if (this.x < 20 || this.x > width - 20) this.vx *= -1;
+                } else {
+                    this.vx *= -1;
                 }
             }
             draw(ctx) {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                if (this.vx < 0) ctx.scale(-1, 1);
-
-                ctx.fillStyle = '#FF6B00'; 
-                ctx.beginPath();
-                ctx.moveTo(this.size, 0);
-                ctx.lineTo(-this.size, -this.size/2);
-                ctx.lineTo(-this.size, this.size/2);
-                ctx.closePath();
-                ctx.fill();
-
-                ctx.beginPath();
-                const tailOffset = Math.sin(this.tailWiggle) * 4;
-                ctx.moveTo(-this.size, 0);
-                ctx.lineTo(-this.size - 6, -4 + tailOffset);
-                ctx.lineTo(-this.size - 6, 4 + tailOffset);
-                ctx.closePath();
-                ctx.fill();
-                ctx.restore();
+                ctx.fillStyle = '#8d6e63';
+                ctx.fillRect(this.x, this.y, 3, 2);
             }
         }
 
-        class CrawlingOrganism {
-            constructor(x) {
-                this.x = x;
-                this.vx = (Math.random() - 0.5) * 0.8;
-                this.size = 3;
-                this.y = 0;
+        // Bug - Terrestrial Scavenger
+        class Bug {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.vx = 0.4;
             }
-            applyMagnet(px, py, dt) {
-                let dx = px - this.x;
-                if (Math.abs(dx) < 200) {
-                    this.vx += (dx > 0 ? 0.8 : -0.8) * dt;
-                }
-            }
-            update(width, sandTop, foods, dt) {
-                this.y = sandTop; 
-                
-                let targetFood = null;
-                let minDist = 100;
-                for (let f of foods) {
-                    if (f.active && Math.abs((f.y + f.size) - sandTop) < 5) {
-                        let dist = Math.abs(this.x - f.x);
-                        if (dist < minDist) { minDist = dist; targetFood = f; }
-                    }
-                }
-
-                if (targetFood) {
-                    this.vx = targetFood.x > this.x ? 1.0 : -1.0;
-                    if (minDist < 5) targetFood.active = false;
+            update(sim, dt) {
+                const gx = Math.floor(this.x + this.vx);
+                const gy = Math.floor(this.y);
+                const below = sim.getCell(gx, gy + 1);
+                if (below === SAND || below === STONE) {
+                    this.x += this.vx * dt;
                 } else {
-                    if (Math.random() < 0.01 * dt) this.vx *= -1;
-                }
-
-                this.x += this.vx * dt;
-                if (this.x < 10 || this.x > width - 10) this.vx *= -1;
-            }
-            draw(ctx) {
-                ctx.fillStyle = '#888888';
-                ctx.fillRect(this.x - this.size, this.y - this.size * 2, this.size * 2, this.size);
-            }
-        }
-
-        class AmbientParticle {
-            constructor(x, y, env, hasWater) {
-                this.x = x;
-                this.y = y;
-                this.vx = (Math.random() - 0.5) * 0.5 + (env.wind * 0.5);
-                this.vy = hasWater ? -Math.random() * 1.2 - 0.2 : -Math.random() * 0.8 - 0.2;
-                this.alpha = 1.0;
-                this.size = 2;
-            }
-            applyMagnet(px, py, dt) {
-                let dx = px - this.x;
-                let dy = py - this.y;
-                let dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 5 && dist < 200) {
-                    let force = (1 - dist / 200) * 3;
-                    this.vx += (dx / dist) * force * dt;
-                    this.vy += (dy / dist) * force * dt;
+                    this.vx *= -1;
                 }
             }
-            update(env, hasWater, dt) {
-                this.x += (this.vx + (env.wind * 0.2)) * dt;
-                this.y += this.vy * dt;
-                this.alpha -= 0.01 * dt;
-            }
             draw(ctx) {
-                ctx.globalAlpha = Math.max(0, this.alpha);
-                ctx.fillStyle = '#A0A0A0';
-                ctx.fillRect(this.x, this.y, this.size, this.size);
-                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = '#78909c';
+                ctx.fillRect(this.x, this.y, 2, 1.5);
             }
         }
 
