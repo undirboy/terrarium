@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terrarium Simulator - Complete Sandbox</title>
+    <title>Terrarium Simulator - Saturation & Cohesive Sand</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body, html {
@@ -67,7 +67,6 @@
             background-color: #122434; border-color: #1b3a54; color: #64b5f6; font-weight: 600;
         }
 
-        /* Easter Egg Text Banner */
         .flash-banner {
             position: fixed;
             top: 50%;
@@ -106,7 +105,7 @@
 
     <div class="ui-panel" id="ui-panel">
         <h1>Terrarium Engine</h1>
-        <div class="subtitle">Physics, cellular dynamics, hydro & gases.</div>
+        <div class="subtitle">Saturated substrate, hydro pooling & shear carving.</div>
         
         <div class="data-section">
             <div class="data-row">
@@ -129,13 +128,13 @@
 
         <div class="section-label">Tools & Modifiers</div>
         <div class="controls-grid">
+            <button class="tool-btn active-tool" onclick="terrarium.setTool('knife')" id="tool-knife" style="grid-column: span 2; background-color: #e056fd; color: #fff; border-color: #be2edd;">🔪 Sculpting Blade</button>
             <button class="tool-btn" onclick="terrarium.setTool('water')" id="tool-water" style="grid-column: span 2; background-color: #227093; color: #fff; border-color: #34ace0;">💧 Torrential Water</button>
-            <button class="tool-btn active-tool" onclick="terrarium.setTool('knife')" id="tool-knife" style="grid-column: span 2; background-color: #e056fd; color: #fff; border-color: #be2edd;">🔪 Precision Knife</button>
-            <button class="tool-btn" onclick="terrarium.setTool('heat')" id="tool-heat" style="color: #ff7675; border-color: #d63031;">🔥 Heat Ray</button>
-            <button class="tool-btn" onclick="terrarium.setTool('chill')" id="tool-chill" style="color: #74b9ff; border-color: #0984e3;">❄️ Freeze Ray</button>
             <button class="tool-btn" onclick="terrarium.setTool('sand')" id="tool-sand">⏳ Dry Sand</button>
             <button class="tool-btn" onclick="terrarium.setTool('wetsand')" id="tool-wetsand">🧱 Wet Sand</button>
-            <button class="tool-btn" onclick="terrarium.setTool('stone')" id="tool-stone">🪨 Stone</button>
+            <button class="tool-btn" onclick="terrarium.setTool('heat')" id="tool-heat" style="color: #ff7675; border-color: #d63031;">🔥 Heat Ray</button>
+            <button class="tool-btn" onclick="terrarium.setTool('chill')" id="tool-chill" style="color: #74b9ff; border-color: #0984e3;">❄️ Freeze Ray</button>
+            <button class="tool-btn" onclick="terrarium.setTool('stone')" id="tool-stone">🪨 Solid Stone</button>
             <button class="tool-btn" onclick="terrarium.setTool('algae')" id="tool-algae">🌿 Algae</button>
             <button class="tool-btn" onclick="terrarium.setTool('erase')" id="tool-erase" style="grid-column: span 2;">🧹 Vacuum / Clear</button>
         </div>
@@ -273,20 +272,23 @@
                     this.setCell(x, this.gh - 1, STONE);
                 }
                 
+                // Wet saturated sand foundation
                 for (let x = 1; x < this.gw - 1; x++) {
                     for (let y = this.gh - 20; y < this.gh - 1; y++) {
                         this.setCell(x, y, WET_SAND);
                     }
                 }
                 
-                for (let x = Math.floor(this.gw * 0.4); x < Math.floor(this.gw * 0.7); x++) {
-                    const h = Math.floor(Math.sin((x - this.gw * 0.4) / (this.gw * 0.3) * Math.PI) * 25);
+                // Dunes
+                for (let x = Math.floor(this.gw * 0.38); x < Math.floor(this.gw * 0.72); x++) {
+                    const h = Math.floor(Math.sin((x - this.gw * 0.38) / (this.gw * 0.34) * Math.PI) * 32);
                     for (let y = this.gh - 20 - h; y < this.gh - 20; y++) {
                         this.setCell(x, y, WET_SAND);
                     }
                 }
 
-                for (let x = 1; x < Math.floor(this.gw * 0.4); x++) {
+                // Initial lake
+                for (let x = 1; x < Math.floor(this.gw * 0.38); x++) {
                     for (let y = this.gh - 45; y < this.gh - 20; y++) {
                         this.setCell(x, y, WATER);
                     }
@@ -299,7 +301,7 @@
                 this.fish = [new Fish(this.gw * 0.18, this.gh - 30)];
                 this.daphnia = [new Daphnia(this.gw * 0.15, this.gh - 28)];
                 this.snails = [new Snail(this.gw * 0.2, this.gh - 21)];
-                this.bugs = [new Bug(this.gw * 0.55, this.gh - 46)];
+                this.bugs = [new Bug(this.gw * 0.55, this.gh - 54)];
             }
 
             resetEco() {
@@ -332,9 +334,21 @@
                     while (true) {
                         for (let ox = -1; ox <= 1; ox++) {
                             for (let oy = -1; oy <= 1; oy++) {
-                                const target = this.getCell(curX + ox, curY + oy);
-                                if (target === SAND || target === WET_SAND || target === STONE || target === ALGAE || target === ICE || target === SILT) {
-                                    this.setCell(curX + ox, curY + oy, EMPTY);
+                                const tx = curX + ox;
+                                const ty = curY + oy;
+                                if (tx <= 0 || tx >= this.gw - 1 || ty <= 0 || ty >= this.gh - 1) continue;
+                                const target = this.getCell(tx, ty);
+
+                                if (target === WET_SAND) {
+                                    this.setCell(tx, ty, EMPTY);
+                                    if (Math.random() < 0.25) {
+                                        const cDir = Math.random() < 0.5 ? 1 : -1;
+                                        if (this.getCell(tx + cDir, ty) === WET_SAND) {
+                                            this.setCell(tx + cDir, ty, SAND);
+                                        }
+                                    }
+                                } else if (target === SAND || target === STONE || target === ALGAE || target === ICE || target === SILT) {
+                                    this.setCell(tx, ty, EMPTY);
                                 }
                             }
                         }
@@ -385,6 +399,15 @@
                 }
             }
 
+            getBondCount(x, y) {
+                let bonds = 0;
+                if (this.getCell(x - 1, y) === WET_SAND) bonds++;
+                if (this.getCell(x + 1, y) === WET_SAND) bonds++;
+                if (this.getCell(x, y - 1) === WET_SAND) bonds++;
+                if (this.getCell(x, y + 1) === WET_SAND) bonds++;
+                return bonds;
+            }
+
             updateGrid(dt) {
                 this.gridNext.set(this.grid);
                 let waterCount = 0;
@@ -398,6 +421,7 @@
                         if (cell === WATER) waterCount++;
                         if (cell === STEAM) vaporCount++;
 
+                        // Temperature
                         if (this.env.temperature <= 0 && cell === WATER && Math.random() < 0.02 * dt) {
                             this.gridNext[idx] = ICE;
                             continue;
@@ -411,6 +435,7 @@
                             continue;
                         }
 
+                        // STEAM
                         if (cell === STEAM) {
                             const above = this.getCell(x, y - 1);
                             if (y <= 2 && Math.random() < 0.05 * dt) {
@@ -432,6 +457,7 @@
                             continue;
                         }
 
+                        // ICE
                         if (cell === ICE) {
                             const below = this.getCell(x, y + 1);
                             if (below === EMPTY) {
@@ -441,61 +467,88 @@
                             continue;
                         }
 
+                        // DRY SAND: Only surface contacts moisten; does NOT continually consume standing water
                         if (cell === SAND) {
                             const below = this.getCell(x, y + 1);
                             const bl = this.getCell(x - 1, y + 1);
                             const br = this.getCell(x + 1, y + 1);
 
+                            // Sinking through water (sand is denser than water)
                             if (below === WATER) {
                                 this.gridNext[idx] = WATER;
                                 this.gridNext[(y + 1) * this.gw + x] = WET_SAND;
                             } else if (below === EMPTY) {
                                 this.gridNext[idx] = EMPTY;
                                 this.gridNext[(y + 1) * this.gw + x] = SAND;
-                            } else if (x > 1 && (bl === EMPTY || bl === WATER)) {
-                                this.gridNext[idx] = bl;
+                            } else if (x > 1 && bl === EMPTY) {
+                                this.gridNext[idx] = EMPTY;
                                 this.gridNext[(y + 1) * this.gw + (x - 1)] = SAND;
-                            } else if (x < this.gw - 2 && (br === EMPTY || br === WATER)) {
-                                this.gridNext[idx] = br;
+                            } else if (x < this.gw - 2 && br === EMPTY) {
+                                this.gridNext[idx] = EMPTY;
                                 this.gridNext[(y + 1) * this.gw + (x + 1)] = SAND;
+                            } else if (x > 1 && bl === WATER) {
+                                this.gridNext[idx] = WATER;
+                                this.gridNext[(y + 1) * this.gw + (x - 1)] = WET_SAND;
+                            } else if (x < this.gw - 2 && br === WATER) {
+                                this.gridNext[idx] = WATER;
+                                this.gridNext[(y + 1) * this.gw + (x + 1)] = WET_SAND;
                             }
                         }
+                        // SATURATED WET SAND: Fully saturated substrate; impervious to water absorption
                         else if (cell === WET_SAND) {
                             const below = this.getCell(x, y + 1);
+                            const left = this.getCell(x - 1, y);
+                            const right = this.getCell(x + 1, y);
+                            const bonds = this.getBondCount(x, y);
+
                             if (below === EMPTY) {
-                                this.gridNext[idx] = EMPTY;
-                                this.gridNext[(y + 1) * this.gw + x] = WET_SAND;
+                                if (bonds <= 1) {
+                                    this.gridNext[idx] = EMPTY;
+                                    this.gridNext[(y + 1) * this.gw + x] = SAND;
+                                } else if (Math.random() < 0.2 * dt) {
+                                    this.gridNext[idx] = EMPTY;
+                                    this.gridNext[(y + 1) * this.gw + x] = WET_SAND;
+                                }
                             } else if (below === WATER) {
+                                // Sinks through water because wet sand is denser than fluid
                                 this.gridNext[idx] = WATER;
                                 this.gridNext[(y + 1) * this.gw + x] = WET_SAND;
                             } else if (below !== EMPTY && below !== WATER) {
-                                const left = this.getCell(x - 1, y);
-                                const right = this.getCell(x + 1, y);
                                 const bl = this.getCell(x - 1, y + 1);
                                 const br = this.getCell(x + 1, y + 1);
-                                
-                                if (x > 1 && left === EMPTY && bl === EMPTY && Math.random() < 0.05 * dt) {
+
+                                if (x > 1 && left === EMPTY && bl === EMPTY && bonds <= 1 && Math.random() < 0.03 * dt) {
                                     this.gridNext[idx] = EMPTY;
-                                    this.gridNext[(y + 1) * this.gw + (x - 1)] = WET_SAND;
-                                } else if (x < this.gw - 2 && right === EMPTY && br === EMPTY && Math.random() < 0.05 * dt) {
+                                    this.gridNext[(y + 1) * this.gw + (x - 1)] = (Math.random() < 0.5 ? SAND : WET_SAND);
+                                } else if (x < this.gw - 2 && right === EMPTY && br === EMPTY && bonds <= 1 && Math.random() < 0.03 * dt) {
                                     this.gridNext[idx] = EMPTY;
-                                    this.gridNext[(y + 1) * this.gw + (x + 1)] = WET_SAND;
+                                    this.gridNext[(y + 1) * this.gw + (x + 1)] = (Math.random() < 0.5 ? SAND : WET_SAND);
                                 }
                             }
                         }
+                        // SILT
                         else if (cell === SILT) {
                             const below = this.getCell(x, y + 1);
-                            if (below === EMPTY) {
-                                this.gridNext[idx] = EMPTY;
+                            if (below === EMPTY || below === WATER) {
+                                this.gridNext[idx] = below;
                                 this.gridNext[(y + 1) * this.gw + x] = SILT;
                             }
                         }
+                        // WATER: Strictly preserves volume; pools on wet sand without being absorbed
                         else if (cell === WATER) {
                             const below = this.getCell(x, y + 1);
+
+                            // Falls down if open space exists
                             if (below === EMPTY) {
                                 this.gridNext[idx] = EMPTY;
                                 this.gridNext[(y + 1) * this.gw + x] = WATER;
-                            } else {
+                            } 
+                            // Only wets dry sand on direct impact; does NOT get absorbed by saturated wet sand
+                            else if (below === SAND && Math.random() < 0.15) {
+                                this.gridNext[(y + 1) * this.gw + x] = WET_SAND;
+                            }
+                            else {
+                                // Horizontal lateral leveling
                                 const dir = Math.random() < 0.5 ? 1 : -1;
                                 const canMoveDir = (dir === 1 && x < this.gw - 2) || (dir === -1 && x > 1);
                                 const canMoveOpp = (dir === 1 && x > 1) || (dir === -1 && x < this.gw - 2);
@@ -520,6 +573,7 @@
                                 }
                             }
                         }
+                        // ALGAE
                         else if (cell === ALGAE) {
                             const isSunlit = !(this.forceNight || this.env.isNight);
                             if (isSunlit && this.co2 > 5 && Math.random() < 0.0006 * dt) {
@@ -586,7 +640,7 @@
                     if (cell === SAND) {
                         data[idx] = 215; data[idx+1] = 185; data[idx+2] = 135; data[idx+3] = 255;
                     } else if (cell === WET_SAND) {
-                        data[idx] = 155; data[idx+1] = 125; data[idx+2] = 85; data[idx+3] = 255;
+                        data[idx] = 142; data[idx+1] = 112; data[idx+2] = 74; data[idx+3] = 255;
                     } else if (cell === WATER) {
                         data[idx] = 45; data[idx+1] = 125; data[idx+2] = 215; data[idx+3] = isNight ? 140 : 180;
                     } else if (cell === ICE) {
